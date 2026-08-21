@@ -1,11 +1,15 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/plavor_local
-    username: dongbin807
-    password:
+    url: jdbc:postgresql://localhost:5433/plavor_local
+    username: plavor
+    password: plavor_password
 
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
 
+management:
+  endpoint:
+    health:
+      show-details: always

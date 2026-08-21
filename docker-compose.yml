@@ -1,0 +1,17 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: plavor-postgres
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: plavor
+      POSTGRES_PASSWORD: plavor_password
+      POSTGRES_DB: plavor_local
+    volumes:
+      - plavor-postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d
+
+volumes:
+  plavor-postgres-data:
+
