@@ -1,5 +1,10 @@
 # Plavor
 
+## Documentation
+
+- [ERD](docs/erd.md)
+- [GitHub Quality Gates](docs/github-quality-gates.md)
+
 ## Home Server Deployment
 
 The production compose file runs the Spring Boot backend and PostgreSQL in the same Docker network.
