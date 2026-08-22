@@ -78,3 +78,4 @@ public class GlobalExceptionHandler {
 				.body(ErrorResponse.of(ErrorCode.COMMON_INTERNAL_SERVER_ERROR));
 	}
 }
+
