@@ -53,7 +53,6 @@ erDiagram
         bigint id PK
         bigint category_id FK
         varchar name
-        varchar slug UK
         text description
         bigint price
         int stock_quantity
