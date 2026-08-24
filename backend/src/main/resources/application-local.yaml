@@ -1,4 +1,9 @@
 spring:
+  config:
+    import:
+      - optional:file:.env.local[.properties]
+      - optional:file:backend/.env.local[.properties]
+
   datasource:
     url: jdbc:postgresql://localhost:5433/plavor_local
     username: plavor
@@ -17,3 +22,7 @@ management:
 app:
   jwt:
     secret: plavor-local-jwt-secret-key-for-development-only-change-me-2026
+  kakao:
+    rest-api-key: ${KAKAO_REST_API_KEY:}
+    client-secret: ${KAKAO_CLIENT_SECRET:}
+    redirect-uri: ${KAKAO_REDIRECT_URI:http://127.0.0.1:5173/auth/kakao/callback}

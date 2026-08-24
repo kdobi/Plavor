@@ -5,7 +5,7 @@ import {
   useState,
 } from 'react'
 import type { ReactNode } from 'react'
-import { fetchMe, login, signup } from '../api/auth'
+import { fetchMe, login, loginWithKakao, signup } from '../api/auth'
 import {
   clearStoredAccessToken,
   getStoredAccessToken,
@@ -66,6 +66,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return response
   }, [])
 
+  const handleKakaoLogin = useCallback(async (code: string) => {
+    const response = await loginWithKakao({ code })
+
+    storeAccessToken(response.accessToken)
+    setAccessToken(response.accessToken)
+    setUser(response.user)
+
+    return response
+  }, [])
+
   const logout = useCallback(() => {
     clearStoredAccessToken()
     setAccessToken(null)
@@ -79,9 +89,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isInitializing,
       signup: handleSignup,
       login: handleLogin,
+      loginWithKakao: handleKakaoLogin,
       logout,
     }),
-    [accessToken, handleLogin, handleSignup, isInitializing, logout, user],
+    [
+      accessToken,
+      handleKakaoLogin,
+      handleLogin,
+      handleSignup,
+      isInitializing,
+      logout,
+      user,
+    ],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

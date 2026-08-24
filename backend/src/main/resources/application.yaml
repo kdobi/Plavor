@@ -20,3 +20,7 @@ springdoc:
 app:
   jwt:
     access-token-expiration-seconds: 3600
+  kakao:
+    authorization-url: https://kauth.kakao.com/oauth/authorize
+    token-url: https://kauth.kakao.com/oauth/token
+    user-info-url: https://kapi.kakao.com/v2/user/me

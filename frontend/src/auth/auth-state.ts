@@ -12,6 +12,7 @@ export interface AuthContextValue {
   isInitializing: boolean
   signup: (request: SignupRequest) => Promise<AuthUser>
   login: (request: LoginRequest) => Promise<AuthTokenResponse>
+  loginWithKakao: (code: string) => Promise<AuthTokenResponse>
   logout: () => void
 }
 

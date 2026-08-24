@@ -22,6 +22,14 @@ export interface LoginRequest {
   password: string
 }
 
+export interface KakaoLoginRequest {
+  code: string
+}
+
+export interface KakaoLoginUrlResponse {
+  authorizationUrl: string
+}
+
 export interface AuthTokenResponse {
   accessToken: string
   tokenType: 'Bearer'
