@@ -1,12 +1,16 @@
 package com.plavor.global.security;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.plavor.global.error.ErrorCode;
 import com.plavor.member.domain.Member;
+import com.plavor.member.domain.MemberRole;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.security.MessageDigest;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
@@ -47,6 +51,34 @@ public class JwtTokenProvider {
 		return new JwtToken(unsignedToken + "." + signature, expiresInSeconds);
 	}
 
+	public AuthenticatedMember parseAccessToken(String token) {
+		String[] parts = token.split("\\.");
+		if (parts.length != 3) {
+			throw invalidToken();
+		}
+
+		String unsignedToken = parts[0] + "." + parts[1];
+		if (!MessageDigest.isEqual(sign(unsignedToken).getBytes(StandardCharsets.UTF_8), parts[2].getBytes(StandardCharsets.UTF_8))) {
+			throw invalidToken();
+		}
+
+		Map<String, Object> payload = decodePayload(parts[1]);
+		long expiresAt = readLong(payload, "exp");
+		if (expiresAt < Instant.now().getEpochSecond()) {
+			throw invalidToken();
+		}
+
+		try {
+			return new AuthenticatedMember(
+					Long.valueOf(readString(payload, "sub")),
+					readString(payload, "email"),
+					MemberRole.valueOf(readString(payload, "role"))
+			);
+		} catch (RuntimeException exception) {
+			throw invalidToken();
+		}
+	}
+
 	private String encodeJson(Map<String, Object> value) {
 		try {
 			return BASE64_URL_ENCODER.encodeToString(objectMapper.writeValueAsBytes(value));
@@ -69,5 +101,37 @@ public class JwtTokenProvider {
 		} catch (Exception exception) {
 			throw new IllegalStateException("JWT signing failed.", exception);
 		}
+	}
+
+	private Map<String, Object> decodePayload(String payload) {
+		try {
+			byte[] decodedPayload = Base64.getUrlDecoder().decode(payload);
+			return objectMapper.readValue(decodedPayload, new TypeReference<>() {
+			});
+		} catch (Exception exception) {
+			throw invalidToken();
+		}
+	}
+
+	private String readString(Map<String, Object> payload, String key) {
+		Object value = payload.get(key);
+		if (!(value instanceof String stringValue) || stringValue.isBlank()) {
+			throw invalidToken();
+		}
+
+		return stringValue;
+	}
+
+	private long readLong(Map<String, Object> payload, String key) {
+		Object value = payload.get(key);
+		if (!(value instanceof Number numberValue)) {
+			throw invalidToken();
+		}
+
+		return numberValue.longValue();
+	}
+
+	private JwtAuthenticationException invalidToken() {
+		return new JwtAuthenticationException(ErrorCode.AUTH_INVALID_TOKEN);
 	}
 }
