@@ -13,3 +13,7 @@ management:
   endpoint:
     health:
       show-details: always
+
+app:
+  jwt:
+    secret: plavor-test-jwt-secret-key-for-automated-tests-only-2026

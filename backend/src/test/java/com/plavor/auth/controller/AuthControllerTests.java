@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -101,5 +102,76 @@ class AuthControllerTests {
 				.andExpect(jsonPath("$.errors[*].field", hasItem("email")))
 				.andExpect(jsonPath("$.errors[*].field", hasItem("password")))
 				.andExpect(jsonPath("$.errors[*].field", hasItem("name")));
+	}
+
+	@Test
+	void loginReturnsAccessToken() throws Exception {
+		mockMvc.perform(post("/api/auth/signup")
+						.contentType("application/json")
+						.content("""
+								{
+								  "email": "login@example.com",
+								  "password": "password1234",
+								  "name": "로그인 사용자"
+								}
+								"""))
+				.andExpect(status().isCreated());
+
+		mockMvc.perform(post("/api/auth/login")
+						.contentType("application/json")
+						.content("""
+								{
+								  "email": "LOGIN@example.com",
+								  "password": "password1234"
+								}
+								"""))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.accessToken", matchesPattern("^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$")))
+				.andExpect(jsonPath("$.tokenType").value("Bearer"))
+				.andExpect(jsonPath("$.expiresIn").value(3600))
+				.andExpect(jsonPath("$.user.email").value("login@example.com"))
+				.andExpect(jsonPath("$.user.name").value("로그인 사용자"))
+				.andExpect(jsonPath("$.user.role").value("USER"));
+	}
+
+	@Test
+	void loginRejectsMissingEmail() throws Exception {
+		mockMvc.perform(post("/api/auth/login")
+						.contentType("application/json")
+						.content("""
+								{
+								  "email": "missing@example.com",
+								  "password": "password1234"
+								}
+								"""))
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.code").value("AUTH_INVALID_CREDENTIALS"))
+				.andExpect(jsonPath("$.message").value("이메일 또는 비밀번호가 올바르지 않습니다."));
+	}
+
+	@Test
+	void loginRejectsWrongPassword() throws Exception {
+		mockMvc.perform(post("/api/auth/signup")
+						.contentType("application/json")
+						.content("""
+								{
+								  "email": "wrong-password@example.com",
+								  "password": "password1234",
+								  "name": "로그인 사용자"
+								}
+								"""))
+				.andExpect(status().isCreated());
+
+		mockMvc.perform(post("/api/auth/login")
+						.contentType("application/json")
+						.content("""
+								{
+								  "email": "wrong-password@example.com",
+								  "password": "wrong-password"
+								}
+								"""))
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.code").value("AUTH_INVALID_CREDENTIALS"))
+				.andExpect(jsonPath("$.message").value("이메일 또는 비밀번호가 올바르지 않습니다."));
 	}
 }

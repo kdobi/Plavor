@@ -1,6 +1,8 @@
 package com.plavor.auth.controller;
 
+import com.plavor.auth.dto.AuthTokenResponse;
 import com.plavor.auth.dto.AuthUserResponse;
+import com.plavor.auth.dto.LoginRequest;
 import com.plavor.auth.dto.SignupRequest;
 import com.plavor.auth.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,5 +31,11 @@ public class AuthController {
 	@ResponseStatus(HttpStatus.CREATED)
 	public AuthUserResponse signup(@Valid @RequestBody SignupRequest request) {
 		return authService.signup(request);
+	}
+
+	@Operation(summary = "이메일 로그인", description = "이메일과 비밀번호를 검증하고 JWT 액세스 토큰을 발급합니다.")
+	@PostMapping("/login")
+	public AuthTokenResponse login(@Valid @RequestBody LoginRequest request) {
+		return authService.login(request);
 	}
 }
