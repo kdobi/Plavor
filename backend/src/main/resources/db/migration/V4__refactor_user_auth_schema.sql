@@ -1,4 +1,4 @@
-ㅣALTER TABLE users
+ALTER TABLE users
 ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE';
 
 CREATE TABLE user_credentials (
