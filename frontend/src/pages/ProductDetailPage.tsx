@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { ApiError } from '../api/auth'
+import { addCartItem } from '../api/cart'
+import { useAuth } from '../auth/auth-state'
 import { fetchProductDetail } from '../api/catalog'
 import { SiteHeader } from '../components/SiteHeader'
 import { findFallbackProductDetail } from '../data/fallbackCatalog'
@@ -8,10 +11,16 @@ import { currencyFormatter, formatImageUrl } from '../utils/catalog'
 
 export function ProductDetailPage() {
   const { productId } = useParams()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const { accessToken, user } = useAuth()
   const [product, setProduct] = useState<ProductDetail | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isNotFound, setIsNotFound] = useState(false)
   const [isUsingFallback, setIsUsingFallback] = useState(false)
+  const [quantity, setQuantity] = useState(1)
+  const [cartMessage, setCartMessage] = useState('')
+  const [isAddingCart, setIsAddingCart] = useState(false)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -64,6 +73,38 @@ export function ProductDetailPage() {
       null
     )
   }, [product])
+
+  async function handleAddCart() {
+    if (!product) {
+      return
+    }
+
+    if (!user || !accessToken) {
+      navigate('/login', {
+        state: { from: `${location.pathname}${location.search}` },
+      })
+      return
+    }
+
+    setIsAddingCart(true)
+    setCartMessage('')
+
+    try {
+      await addCartItem(accessToken, {
+        productId: product.id,
+        quantity,
+      })
+      navigate('/cart')
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setCartMessage(error.message)
+      } else {
+        setCartMessage('장바구니에 담지 못했습니다.')
+      }
+    } finally {
+      setIsAddingCart(false)
+    }
+  }
 
   return (
     <div className="storefront">
@@ -127,9 +168,42 @@ export function ProductDetailPage() {
                 {product.description ?? '상품 설명이 준비 중입니다.'}
               </p>
 
+              <div className="detail-purchase-row">
+                <span>수량</span>
+                <div className="detail-quantity-control">
+                  <button
+                    aria-label="수량 줄이기"
+                    disabled={quantity <= 1}
+                    type="button"
+                    onClick={() => setQuantity((current) => current - 1)}
+                  >
+                    -
+                  </button>
+                  <strong>{quantity}</strong>
+                  <button
+                    aria-label="수량 늘리기"
+                    disabled={quantity >= product.stockQuantity}
+                    type="button"
+                    onClick={() => setQuantity((current) => current + 1)}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {cartMessage && <p className="detail-message">{cartMessage}</p>}
+
               <div className="detail-actions">
-                <button type="button" disabled={product.status === 'SOLD_OUT'}>
-                  {product.status === 'SOLD_OUT' ? '재입고 알림 받기' : '장바구니 담기'}
+                <button
+                  type="button"
+                  disabled={product.status === 'SOLD_OUT' || isAddingCart}
+                  onClick={handleAddCart}
+                >
+                  {product.status === 'SOLD_OUT'
+                    ? '재입고 알림 받기'
+                    : isAddingCart
+                      ? '담는 중'
+                      : '장바구니 담기'}
                 </button>
                 <button type="button" className="secondary-action">
                   관심상품

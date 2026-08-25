@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import './App.css'
 import { AuthProvider } from './auth/AuthContext'
+import { CartPage } from './pages/CartPage'
 import { HomePage } from './pages/HomePage'
 import { KakaoCallbackPage } from './pages/KakaoCallbackPage'
 import { LoginPage } from './pages/LoginPage'
@@ -17,6 +18,7 @@ function App() {
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/auth/kakao/callback" element={<KakaoCallbackPage />} />
           <Route path="/products/:productId" element={<ProductDetailPage />} />
+          <Route path="/cart" element={<CartPage />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
