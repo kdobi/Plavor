@@ -92,6 +92,22 @@ public class Product {
 		return status;
 	}
 
+	public boolean hasStock(int quantity) {
+		return stockQuantity >= quantity;
+	}
+
+	public void decreaseStock(int quantity) {
+		if (quantity < 1 || stockQuantity < quantity) {
+			throw new IllegalArgumentException("재고보다 많은 수량을 차감할 수 없습니다.");
+		}
+
+		stockQuantity -= quantity;
+
+		if (stockQuantity == 0 && status == ProductStatus.ACTIVE) {
+			status = ProductStatus.SOLD_OUT;
+		}
+	}
+
 	public List<ProductImage> getImages() {
 		return Collections.unmodifiableList(images);
 	}

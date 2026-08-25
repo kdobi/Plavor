@@ -1,13 +1,30 @@
 import { useEffect, useMemo, useState } from 'react'
+import type { FormEvent } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { ApiError } from '../api/auth'
 import { deleteCartItem, fetchCart, updateCartItem } from '../api/cart'
+import { createOrder } from '../api/order'
 import { useAuth } from '../auth/auth-state'
 import { SiteHeader } from '../components/SiteHeader'
 import type { Cart, CartItem } from '../types/cart'
 import { currencyFormatter, formatImageUrl } from '../utils/catalog'
 
 const DELIVERY_FEE = 3000
+const PHONE_MAX_LENGTH = 11
+const POSTAL_CODE_LENGTH = 5
+const ORDER_FORM_FIELDS = [
+  'receiverName',
+  'receiverPhone',
+  'postalCode',
+  'address',
+  'addressDetail',
+  'deliveryMessage',
+] as const
+
+type OrderFormField = (typeof ORDER_FORM_FIELDS)[number]
+type OrderForm = Record<OrderFormField, string>
+type OrderFieldErrors = Partial<Record<OrderFormField, string>>
+const ORDER_FORM_FIELD_SET = new Set<string>(ORDER_FORM_FIELDS)
 
 export function CartPage() {
   const location = useLocation()
@@ -15,8 +32,19 @@ export function CartPage() {
   const [cart, setCart] = useState<Cart | null>(null)
   const [selectedItemIds, setSelectedItemIds] = useState<number[]>([])
   const [message, setMessage] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [updatingItemId, setUpdatingItemId] = useState<number | null>(null)
+  const [isOrdering, setIsOrdering] = useState(false)
+  const [orderForm, setOrderForm] = useState<OrderForm>({
+    receiverName: '',
+    receiverPhone: '',
+    postalCode: '',
+    address: '',
+    addressDetail: '',
+    deliveryMessage: '',
+  })
+  const [orderFieldErrors, setOrderFieldErrors] = useState<OrderFieldErrors>({})
 
   useEffect(() => {
     if (!accessToken) {
@@ -75,6 +103,9 @@ export function CartPage() {
   const selectedPaymentAmount = selectedAmount + selectedDeliveryFee
   const isAllSelected =
     Boolean(cart?.items.length) && selectedItemIds.length === cart?.items.length
+  const receiverName = orderForm.receiverName || user?.name || ''
+  const receiverPhone =
+    orderForm.receiverPhone || normalizeDigits(user?.phone ?? '', PHONE_MAX_LENGTH)
 
   async function handleQuantityChange(item: CartItem, nextQuantity: number) {
     if (!accessToken || nextQuantity < 1 || nextQuantity > item.stockQuantity) {
@@ -83,6 +114,7 @@ export function CartPage() {
 
     setUpdatingItemId(item.id)
     setMessage('')
+    setSuccessMessage('')
 
     try {
       const data = await updateCartItem(accessToken, item.id, {
@@ -109,6 +141,7 @@ export function CartPage() {
 
     setUpdatingItemId(itemId)
     setMessage('')
+    setSuccessMessage('')
 
     try {
       await deleteCartItem(accessToken, itemId)
@@ -130,6 +163,7 @@ export function CartPage() {
 
     setUpdatingItemId(-1)
     setMessage('')
+    setSuccessMessage('')
 
     try {
       for (const itemId of selectedItemIds) {
@@ -163,6 +197,62 @@ export function CartPage() {
         ? current.filter((id) => id !== itemId)
         : [...current, itemId],
     )
+  }
+
+  function handleOrderFormChange(field: OrderFormField, value: string) {
+    setOrderForm((current) => ({
+      ...current,
+      [field]: value,
+    }))
+    setOrderFieldErrors((current) => {
+      if (!current[field]) {
+        return current
+      }
+
+      const next = { ...current }
+      delete next[field]
+      return next
+    })
+  }
+
+  async function handleCreateOrder(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (!accessToken || selectedItemIds.length === 0) {
+      return
+    }
+
+    setIsOrdering(true)
+    setMessage('')
+    setSuccessMessage('')
+    setOrderFieldErrors({})
+
+    try {
+      const order = await createOrder(accessToken, {
+        cartItemIds: selectedItemIds,
+        receiverName,
+        receiverPhone,
+        postalCode: orderForm.postalCode,
+        address: orderForm.address,
+        addressDetail: orderForm.addressDetail.trim() || undefined,
+        deliveryMessage: orderForm.deliveryMessage.trim() || undefined,
+      })
+      const data = await fetchCart(accessToken)
+
+      setCart(data)
+      setSelectedItemIds(data.items.map((item) => item.id))
+      setSuccessMessage(`주문이 생성되었습니다. 주문번호 ${order.orderNumber}`)
+    } catch (error) {
+      const nextFieldErrors = readOrderFieldErrors(error)
+
+      if (Object.keys(nextFieldErrors).length > 0) {
+        setOrderFieldErrors(nextFieldErrors)
+      }
+
+      setMessage(readApiMessage(error, '주문을 생성하지 못했습니다.'))
+    } finally {
+      setIsOrdering(false)
+    }
   }
 
   return (
@@ -253,32 +343,171 @@ export function CartPage() {
 
               <aside className="cart-summary" aria-label="주문 요약">
                 <h2>주문 요약</h2>
-                <dl>
-                  <div>
-                    <dt>선택 상품</dt>
-                    <dd>{selectedQuantity}개</dd>
+                <form className="cart-order-form" onSubmit={handleCreateOrder}>
+                  <div className="cart-order-fields">
+                    <label>
+                      <span>수령자</span>
+                      <input
+                        aria-invalid={Boolean(orderFieldErrors.receiverName)}
+                        autoComplete="name"
+                        required
+                        type="text"
+                        value={receiverName}
+                        placeholder="김동빈"
+                        onChange={(event) =>
+                          handleOrderFormChange('receiverName', event.target.value)
+                        }
+                      />
+                      {orderFieldErrors.receiverName && (
+                        <small className="cart-field-message">
+                          {orderFieldErrors.receiverName}
+                        </small>
+                      )}
+                    </label>
+
+                    <label>
+                      <span>연락처</span>
+                      <input
+                        aria-invalid={Boolean(orderFieldErrors.receiverPhone)}
+                        autoComplete="tel"
+                        inputMode="numeric"
+                        maxLength={PHONE_MAX_LENGTH}
+                        pattern="01[016789][0-9]{7,8}"
+                        required
+                        title="010으로 시작하는 10~11자리 숫자를 입력해주세요."
+                        type="tel"
+                        value={receiverPhone}
+                        placeholder="01012345678"
+                        onChange={(event) =>
+                          handleOrderFormChange(
+                            'receiverPhone',
+                            normalizeDigits(event.target.value, PHONE_MAX_LENGTH),
+                          )
+                        }
+                      />
+                      {orderFieldErrors.receiverPhone && (
+                        <small className="cart-field-message">
+                          {orderFieldErrors.receiverPhone}
+                        </small>
+                      )}
+                    </label>
+
+                    <label>
+                      <span>우편번호</span>
+                      <input
+                        aria-invalid={Boolean(orderFieldErrors.postalCode)}
+                        autoComplete="postal-code"
+                        inputMode="numeric"
+                        maxLength={POSTAL_CODE_LENGTH}
+                        pattern="[0-9]{5}"
+                        required
+                        title="5자리 숫자 우편번호를 입력해주세요."
+                        type="text"
+                        value={orderForm.postalCode}
+                        placeholder="06236"
+                        onChange={(event) =>
+                          handleOrderFormChange(
+                            'postalCode',
+                            normalizeDigits(event.target.value, POSTAL_CODE_LENGTH),
+                          )
+                        }
+                      />
+                      {orderFieldErrors.postalCode && (
+                        <small className="cart-field-message">
+                          {orderFieldErrors.postalCode}
+                        </small>
+                      )}
+                    </label>
+
+                    <label>
+                      <span>주소</span>
+                      <input
+                        aria-invalid={Boolean(orderFieldErrors.address)}
+                        autoComplete="street-address"
+                        required
+                        type="text"
+                        value={orderForm.address}
+                        placeholder="서울특별시 강남구 테헤란로 123"
+                        onChange={(event) =>
+                          handleOrderFormChange('address', event.target.value)
+                        }
+                      />
+                      {orderFieldErrors.address && (
+                        <small className="cart-field-message">
+                          {orderFieldErrors.address}
+                        </small>
+                      )}
+                    </label>
+
+                    <label>
+                      <span>상세 주소</span>
+                      <input
+                        aria-invalid={Boolean(orderFieldErrors.addressDetail)}
+                        type="text"
+                        value={orderForm.addressDetail}
+                        placeholder="선택 입력"
+                        onChange={(event) =>
+                          handleOrderFormChange('addressDetail', event.target.value)
+                        }
+                      />
+                      {orderFieldErrors.addressDetail && (
+                        <small className="cart-field-message">
+                          {orderFieldErrors.addressDetail}
+                        </small>
+                      )}
+                    </label>
+
+                    <label>
+                      <span>배송 요청사항</span>
+                      <textarea
+                        aria-invalid={Boolean(orderFieldErrors.deliveryMessage)}
+                        rows={3}
+                        value={orderForm.deliveryMessage}
+                        placeholder="선택 입력"
+                        onChange={(event) =>
+                          handleOrderFormChange('deliveryMessage', event.target.value)
+                        }
+                      />
+                      {orderFieldErrors.deliveryMessage && (
+                        <small className="cart-field-message">
+                          {orderFieldErrors.deliveryMessage}
+                        </small>
+                      )}
+                    </label>
                   </div>
-                  <div>
-                    <dt>상품 금액</dt>
-                    <dd>{currencyFormatter.format(selectedAmount)}원</dd>
-                  </div>
-                  <div>
-                    <dt>배송비</dt>
-                    <dd>
-                      {selectedItems.length > 0
-                        ? `${currencyFormatter.format(selectedDeliveryFee)}원`
-                        : '-'}
-                    </dd>
-                  </div>
-                  <div className="cart-total-row">
-                    <dt>예상 결제금액</dt>
-                    <dd>{currencyFormatter.format(selectedPaymentAmount)}원</dd>
-                  </div>
-                </dl>
-                {message && <p className="cart-message">{message}</p>}
-                <button disabled={selectedItems.length === 0} type="button">
-                  총 {selectedQuantity}개 주문하기
-                </button>
+
+                  <dl>
+                    <div>
+                      <dt>선택 상품</dt>
+                      <dd>{selectedQuantity}개</dd>
+                    </div>
+                    <div>
+                      <dt>상품 금액</dt>
+                      <dd>{currencyFormatter.format(selectedAmount)}원</dd>
+                    </div>
+                    <div>
+                      <dt>배송비</dt>
+                      <dd>
+                        {selectedItems.length > 0
+                          ? `${currencyFormatter.format(selectedDeliveryFee)}원`
+                          : '-'}
+                      </dd>
+                    </div>
+                    <div className="cart-total-row">
+                      <dt>예상 결제금액</dt>
+                      <dd>{currencyFormatter.format(selectedPaymentAmount)}원</dd>
+                    </div>
+                  </dl>
+                  {message && <p className="cart-message">{message}</p>}
+                  {successMessage && (
+                    <p className="cart-message success">{successMessage}</p>
+                  )}
+                  <button disabled={selectedItems.length === 0 || isOrdering} type="submit">
+                    {isOrdering
+                      ? '주문 생성 중'
+                      : `총 ${selectedQuantity}개 주문하기`}
+                  </button>
+                </form>
               </aside>
             </section>
           </>
@@ -406,4 +635,34 @@ function readApiMessage(error: unknown, fallbackMessage: string) {
   }
 
   return fallbackMessage
+}
+
+function normalizeDigits(value: string, maxLength: number) {
+  return value.replace(/\D/g, '').slice(0, maxLength)
+}
+
+function readOrderFieldErrors(error: unknown) {
+  if (!(error instanceof ApiError)) {
+    return {}
+  }
+
+  return error.fieldErrors.reduce<OrderFieldErrors>((errors, fieldError) => {
+    const fieldName = readOrderFormField(fieldError.field)
+
+    if (fieldName && !errors[fieldName]) {
+      errors[fieldName] = fieldError.message
+    }
+
+    return errors
+  }, {})
+}
+
+function readOrderFormField(field: string) {
+  const fieldName = field.split('.').at(-1) ?? field
+
+  if (!ORDER_FORM_FIELD_SET.has(fieldName)) {
+    return null
+  }
+
+  return fieldName as OrderFormField
 }

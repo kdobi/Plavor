@@ -982,6 +982,73 @@
   margin: 0;
 }
 
+.cart-order-form {
+  display: grid;
+  gap: 18px;
+}
+
+.cart-order-fields {
+  display: grid;
+  gap: 12px;
+  padding-bottom: 4px;
+}
+
+.cart-order-fields label {
+  display: grid;
+  gap: 7px;
+}
+
+.cart-order-fields label span {
+  color: #444444;
+  font-size: 13px;
+  font-weight: 740;
+}
+
+.cart-order-fields input,
+.cart-order-fields textarea {
+  width: 100%;
+  border: 1px solid #dedede;
+  border-radius: 8px;
+  padding: 0 12px;
+  color: #111111;
+  background: #ffffff;
+  font: inherit;
+  font-size: 14px;
+  outline: 0;
+}
+
+.cart-order-fields input {
+  min-height: 42px;
+}
+
+.cart-order-fields textarea {
+  min-height: 78px;
+  padding-top: 11px;
+  resize: vertical;
+}
+
+.cart-order-fields input:focus,
+.cart-order-fields textarea:focus {
+  border-color: #111111;
+}
+
+.cart-order-fields input[aria-invalid='true'],
+.cart-order-fields textarea[aria-invalid='true'] {
+  border-color: #d93333;
+}
+
+.cart-order-fields input::placeholder,
+.cart-order-fields textarea::placeholder {
+  color: #a0a0a0;
+}
+
+.cart-field-message {
+  color: #d93333;
+  font-size: 12px;
+  font-weight: 720;
+  line-height: 1.35;
+}
+
 .cart-summary dl div {
   display: flex;
   align-items: center;
@@ -1046,6 +1113,10 @@
   font-size: 13px;
   font-weight: 720;
   line-height: 1.5;
+}
+
+.cart-message.success {
+  color: #157347;
 }
 
 .cart-empty {
