@@ -18,7 +18,12 @@ public enum ErrorCode {
 
 	CART_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "CART_ITEM_NOT_FOUND", "장바구니 상품을 찾을 수 없습니다."),
 	CART_PRODUCT_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "CART_PRODUCT_NOT_AVAILABLE", "장바구니에 담을 수 없는 상품입니다."),
-	CART_QUANTITY_EXCEEDS_STOCK(HttpStatus.BAD_REQUEST, "CART_QUANTITY_EXCEEDS_STOCK", "상품 재고보다 많은 수량을 담을 수 없습니다.");
+	CART_QUANTITY_EXCEEDS_STOCK(HttpStatus.BAD_REQUEST, "CART_QUANTITY_EXCEEDS_STOCK", "상품 재고보다 많은 수량을 담을 수 없습니다."),
+
+	ORDER_EMPTY_ITEM_SELECTION(HttpStatus.BAD_REQUEST, "ORDER_EMPTY_ITEM_SELECTION", "주문할 장바구니 상품을 선택해야 합니다."),
+	ORDER_CART_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "ORDER_CART_ITEM_NOT_FOUND", "주문할 장바구니 상품을 찾을 수 없습니다."),
+	ORDER_PRODUCT_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "ORDER_PRODUCT_NOT_AVAILABLE", "주문할 수 없는 상품이 포함되어 있습니다."),
+	ORDER_QUANTITY_EXCEEDS_STOCK(HttpStatus.BAD_REQUEST, "ORDER_QUANTITY_EXCEEDS_STOCK", "주문 수량이 상품 재고보다 많습니다.");
 
 	private final HttpStatus status;
 	private final String code;

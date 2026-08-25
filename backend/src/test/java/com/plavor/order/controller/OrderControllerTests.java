@@ -1,0 +1,222 @@
+package com.plavor.order.controller;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.transaction.annotation.Transactional;
+
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.startsWith;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@SpringBootTest
+@AutoConfigureMockMvc
+@ActiveProfiles("test")
+@Transactional
+class OrderControllerTests {
+
+	private final ObjectMapper objectMapper = new ObjectMapper();
+
+	@Autowired
+	private MockMvc mockMvc;
+
+	@Test
+	void createOrderRequiresLogin() throws Exception {
+		mockMvc.perform(post("/api/orders")
+						.contentType("application/json")
+						.content("""
+								{
+								  "cartItemIds": [1],
+								  "receiverName": "김동빈",
+								  "receiverPhone": "01012345678",
+								  "postalCode": "06236",
+								  "address": "서울특별시 강남구 테헤란로 123"
+								}
+								"""))
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.code").value("AUTH_UNAUTHORIZED"));
+	}
+
+	@Test
+	void createOrderCreatesOrderFromSelectedCartItems() throws Exception {
+		String accessToken = signupAndLogin("order-create@example.com");
+		Long firstItemId = addItem(accessToken, 1, 2);
+		Long secondItemId = addItem(accessToken, 2, 1);
+
+		mockMvc.perform(post("/api/orders")
+						.header("Authorization", "Bearer " + accessToken)
+						.contentType("application/json")
+						.content("""
+								{
+								  "cartItemIds": [%d, %d],
+								  "receiverName": "김동빈",
+								  "receiverPhone": "01012345678",
+								  "postalCode": "06236",
+								  "address": "서울특별시 강남구 테헤란로 123",
+								  "addressDetail": "10층",
+								  "deliveryMessage": "문 앞에 놓아주세요."
+								}
+								""".formatted(firstItemId, secondItemId)))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.id").isNumber())
+				.andExpect(jsonPath("$.orderNumber", startsWith("PLV")))
+				.andExpect(jsonPath("$.status").value("CREATED"))
+				.andExpect(jsonPath("$.totalAmount").value(127000))
+				.andExpect(jsonPath("$.receiverName").value("김동빈"))
+				.andExpect(jsonPath("$.receiverPhone").value("01012345678"))
+				.andExpect(jsonPath("$.postalCode").value("06236"))
+				.andExpect(jsonPath("$.address").value("서울특별시 강남구 테헤란로 123"))
+				.andExpect(jsonPath("$.addressDetail").value("10층"))
+				.andExpect(jsonPath("$.deliveryMessage").value("문 앞에 놓아주세요."))
+				.andExpect(jsonPath("$.orderedAt").exists())
+				.andExpect(jsonPath("$.items", hasSize(2)))
+				.andExpect(jsonPath("$.items[0].productId").value(1))
+				.andExpect(jsonPath("$.items[0].productName").value("Minimal Cotton T-Shirt"))
+				.andExpect(jsonPath("$.items[0].unitPrice").value(29000))
+				.andExpect(jsonPath("$.items[0].quantity").value(2))
+				.andExpect(jsonPath("$.items[0].totalPrice").value(58000))
+				.andExpect(jsonPath("$.items[1].productId").value(2))
+				.andExpect(jsonPath("$.items[1].productName").value("Relaxed Zip Hoodie"))
+				.andExpect(jsonPath("$.items[1].unitPrice").value(69000))
+				.andExpect(jsonPath("$.items[1].quantity").value(1))
+				.andExpect(jsonPath("$.items[1].totalPrice").value(69000));
+
+		mockMvc.perform(get("/api/cart")
+						.header("Authorization", "Bearer " + accessToken))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.items", hasSize(0)))
+				.andExpect(jsonPath("$.totalQuantity").value(0))
+				.andExpect(jsonPath("$.totalAmount").value(0));
+	}
+
+	@Test
+	void createOrderOnlyRemovesSelectedCartItems() throws Exception {
+		String accessToken = signupAndLogin("order-selected@example.com");
+		Long selectedItemId = addItem(accessToken, 1, 1);
+		addItem(accessToken, 2, 1);
+
+		mockMvc.perform(post("/api/orders")
+						.header("Authorization", "Bearer " + accessToken)
+						.contentType("application/json")
+						.content("""
+								{
+								  "cartItemIds": [%d],
+								  "receiverName": "김동빈",
+								  "receiverPhone": "01012345678",
+								  "postalCode": "06236",
+								  "address": "서울특별시 강남구 테헤란로 123"
+								}
+								""".formatted(selectedItemId)))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.items", hasSize(1)))
+				.andExpect(jsonPath("$.items[0].productId").value(1))
+				.andExpect(jsonPath("$.totalAmount").value(29000));
+
+		mockMvc.perform(get("/api/cart")
+						.header("Authorization", "Bearer " + accessToken))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.items", hasSize(1)))
+				.andExpect(jsonPath("$.items[0].productId").value(2));
+	}
+
+	@Test
+	void createOrderRejectsEmptySelection() throws Exception {
+		String accessToken = signupAndLogin("order-empty@example.com");
+
+		mockMvc.perform(post("/api/orders")
+						.header("Authorization", "Bearer " + accessToken)
+						.contentType("application/json")
+						.content("""
+								{
+								  "cartItemIds": [],
+								  "receiverName": "김동빈",
+								  "receiverPhone": "01012345678",
+								  "postalCode": "06236",
+								  "address": "서울특별시 강남구 테헤란로 123"
+								}
+								"""))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("COMMON_INVALID_INPUT"));
+	}
+
+	@Test
+	void createOrderRejectsOtherMembersCartItem() throws Exception {
+		String ownerToken = signupAndLogin("order-owner@example.com");
+		String otherToken = signupAndLogin("order-other@example.com");
+		Long itemId = addItem(ownerToken, 1, 1);
+
+		mockMvc.perform(post("/api/orders")
+						.header("Authorization", "Bearer " + otherToken)
+						.contentType("application/json")
+						.content("""
+								{
+								  "cartItemIds": [%d],
+								  "receiverName": "김동빈",
+								  "receiverPhone": "01012345678",
+								  "postalCode": "06236",
+								  "address": "서울특별시 강남구 테헤란로 123"
+								}
+								""".formatted(itemId)))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.code").value("ORDER_CART_ITEM_NOT_FOUND"))
+				.andExpect(jsonPath("$.message").value("주문할 장바구니 상품을 찾을 수 없습니다."));
+	}
+
+	private Long addItem(String accessToken, long productId, int quantity) throws Exception {
+		MvcResult result = mockMvc.perform(post("/api/cart/items")
+						.header("Authorization", "Bearer " + accessToken)
+						.contentType("application/json")
+						.content("""
+								{
+								  "productId": %d,
+								  "quantity": %d
+								}
+								""".formatted(productId, quantity)))
+				.andExpect(status().isCreated())
+				.andReturn();
+
+		JsonNode items = objectMapper.readTree(result.getResponse().getContentAsString()).get("items");
+		for (JsonNode item : items) {
+			if (item.get("productId").asLong() == productId) {
+				return item.get("id").asLong();
+			}
+		}
+
+		throw new IllegalStateException("장바구니 상품 ID를 찾을 수 없습니다.");
+	}
+
+	private String signupAndLogin(String email) throws Exception {
+		mockMvc.perform(post("/api/auth/signup")
+						.contentType("application/json")
+						.content("""
+								{
+								  "email": "%s",
+								  "password": "password1234",
+								  "name": "주문 사용자"
+								}
+								""".formatted(email)))
+				.andExpect(status().isCreated());
+
+		MvcResult result = mockMvc.perform(post("/api/auth/login")
+						.contentType("application/json")
+						.content("""
+								{
+								  "email": "%s",
+								  "password": "password1234"
+								}
+								""".formatted(email)))
+				.andExpect(status().isOk())
+				.andReturn();
+
+		return objectMapper.readTree(result.getResponse().getContentAsString()).get("accessToken").asText();
+	}
+}
