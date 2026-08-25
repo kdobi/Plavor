@@ -10,6 +10,10 @@ import { ApiError } from '../api/auth'
 import { fetchCategories } from '../api/catalog'
 import { useAuth } from '../auth/auth-state'
 import { AdminAccessGate } from '../components/AdminAccessGate'
+import {
+  AdminBreadcrumb,
+  AdminNavigation,
+} from '../components/AdminNavigation'
 import { SiteHeader } from '../components/SiteHeader'
 import type { AdminProduct, AdminProductRequest } from '../types/admin'
 import type { Category, ProductStatus } from '../types/catalog'
@@ -246,13 +250,15 @@ export function AdminProductFormPage() {
         <AdminAccessGate>
           <section className="admin-heading">
             <div>
-              <p className="eyebrow">Admin Catalog</p>
-              <h1>{isEditMode ? '상품 수정' : '상품 등록'}</h1>
+              <AdminBreadcrumb current={isEditMode ? '상품 수정' : '새 상품 등록'} />
+              <h1>{isEditMode ? '상품 수정' : '새 상품 등록'}</h1>
             </div>
             <Link className="admin-secondary-link" to="/admin/products">
               목록으로
             </Link>
           </section>
+
+          <AdminNavigation active="products" />
 
           {isLoading ? (
             <div className="admin-form-skeleton" />

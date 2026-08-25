@@ -8,6 +8,10 @@ import {
 import { ApiError } from '../api/auth'
 import { useAuth } from '../auth/auth-state'
 import { AdminAccessGate } from '../components/AdminAccessGate'
+import {
+  AdminBreadcrumb,
+  AdminNavigation,
+} from '../components/AdminNavigation'
 import { SiteHeader } from '../components/SiteHeader'
 import type { AdminOrder } from '../types/admin'
 import type { OrderStatus } from '../types/order'
@@ -135,11 +139,12 @@ export function AdminOrdersPage() {
         <AdminAccessGate>
           <section className="admin-heading">
             <div>
-              <p className="eyebrow">Admin Orders</p>
-              <h1>주문 관리</h1>
+              <AdminBreadcrumb current="주문 목록" />
+              <h1>주문 목록</h1>
             </div>
-            <AdminSubnav />
           </section>
+
+          <AdminNavigation active="orders" />
 
           <section className="admin-toolbar compact" aria-label="주문 검색 조건">
             <form className="admin-search-form" onSubmit={handleSearch}>
@@ -274,17 +279,6 @@ export function AdminOrdersPage() {
         </AdminAccessGate>
       </main>
     </div>
-  )
-}
-
-function AdminSubnav() {
-  return (
-    <nav className="admin-subnav" aria-label="관리자 메뉴">
-      <Link to="/admin/products">상품 관리</Link>
-      <Link className="active" to="/admin/orders">
-        주문 관리
-      </Link>
-    </nav>
   )
 }
 

@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import './App.css'
 import { AuthProvider } from './auth/AuthContext'
+import { AdminHomePage } from './pages/AdminHomePage'
 import { AdminOrderDetailPage } from './pages/AdminOrderDetailPage'
 import { AdminOrdersPage } from './pages/AdminOrdersPage'
 import { AdminProductFormPage } from './pages/AdminProductFormPage'
@@ -29,6 +30,7 @@ function App() {
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/orders/complete/:orderId" element={<OrderCompletePage />} />
           <Route path="/orders/:orderId" element={<OrderDetailPage />} />
+          <Route path="/admin" element={<AdminHomePage />} />
           <Route path="/admin/products" element={<AdminProductsPage />} />
           <Route path="/admin/products/new" element={<AdminProductFormPage />} />
           <Route

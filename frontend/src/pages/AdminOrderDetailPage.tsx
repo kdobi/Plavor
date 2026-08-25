@@ -7,6 +7,10 @@ import {
 import { ApiError } from '../api/auth'
 import { useAuth } from '../auth/auth-state'
 import { AdminAccessGate } from '../components/AdminAccessGate'
+import {
+  AdminBreadcrumb,
+  AdminNavigation,
+} from '../components/AdminNavigation'
 import { SiteHeader } from '../components/SiteHeader'
 import type { AdminOrder } from '../types/admin'
 import type { OrderStatus } from '../types/order'
@@ -99,13 +103,15 @@ export function AdminOrderDetailPage() {
         <AdminAccessGate>
           <section className="admin-heading">
             <div>
-              <p className="eyebrow">Admin Order Detail</p>
+              <AdminBreadcrumb current="주문 상세" />
               <h1>주문 상세 관리</h1>
             </div>
             <Link className="admin-secondary-link" to="/admin/orders">
               목록으로
             </Link>
           </section>
+
+          <AdminNavigation active="orders" />
 
           {isLoading ? (
             <section className="order-detail-layout">

@@ -2158,6 +2158,30 @@
   line-height: 1.15;
 }
 
+.admin-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 8px;
+  color: #9a9a9a;
+  font-size: 12px;
+  font-weight: 780;
+}
+
+.admin-breadcrumb a {
+  color: #777777;
+  text-decoration: none;
+}
+
+.admin-breadcrumb a:hover {
+  color: #111111;
+}
+
+.admin-breadcrumb strong {
+  color: #111111;
+  font-weight: 800;
+}
+
 .admin-primary-link,
 .admin-secondary-link,
 .admin-access-link,
@@ -2209,6 +2233,7 @@
 .admin-subnav {
   display: inline-flex;
   min-height: 42px;
+  margin-bottom: 18px;
   border: 1px solid #eeeeee;
   border-radius: 8px;
   overflow: hidden;
@@ -2219,8 +2244,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 86px;
-  padding: 0 14px;
+  min-width: 104px;
+  padding: 0 16px;
   color: #666666;
   font-size: 14px;
   font-weight: 780;
@@ -2259,6 +2284,50 @@
   color: #111111;
   font-size: 24px;
   font-weight: 830;
+}
+
+.admin-home-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.admin-home-card {
+  display: grid;
+  gap: 10px;
+  min-height: 180px;
+  align-content: end;
+  border: 1px solid #eeeeee;
+  border-radius: 8px;
+  padding: 24px;
+  color: #111111;
+  background: #ffffff;
+  text-decoration: none;
+}
+
+.admin-home-card:hover {
+  border-color: #111111;
+}
+
+.admin-home-card span {
+  color: #999999;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.admin-home-card strong {
+  color: #111111;
+  font-size: 24px;
+  font-weight: 850;
+  line-height: 1.2;
+}
+
+.admin-home-card small {
+  color: #666666;
+  font-size: 14px;
+  font-weight: 690;
+  line-height: 1.55;
 }
 
 .admin-toolbar {
@@ -3309,6 +3378,20 @@
 
   .admin-heading h1 {
     font-size: 28px;
+  }
+
+  .admin-home-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-subnav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .admin-subnav a {
+    min-width: 0;
   }
 
   .admin-toolbar,
