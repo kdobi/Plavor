@@ -141,4 +141,48 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 			@Param("id") Long id,
 			@Param("statuses") Collection<ProductStatus> statuses
 	);
+
+	@Query(
+			value = """
+					select p.id
+					from Product p
+					join p.category c
+					where (:categoryId is null or c.id = :categoryId)
+					and (:status is null or p.status = :status)
+					and lower(p.name) like concat('%', :keyword, '%')
+					order by p.id desc
+					""",
+			countQuery = """
+					select count(p)
+					from Product p
+					join p.category c
+					where (:categoryId is null or c.id = :categoryId)
+					and (:status is null or p.status = :status)
+					and lower(p.name) like concat('%', :keyword, '%')
+					"""
+	)
+	Page<Long> findAdminProductIds(
+			@Param("categoryId") Long categoryId,
+			@Param("status") ProductStatus status,
+			@Param("keyword") String keyword,
+			Pageable pageable
+	);
+
+	@Query("""
+			select distinct p
+			from Product p
+			join fetch p.category
+			left join fetch p.images
+			where p.id in :ids
+			""")
+	List<Product> findAllAdminProductsWithDetails(@Param("ids") Collection<Long> ids);
+
+	@Query("""
+			select distinct p
+			from Product p
+			join fetch p.category
+			left join fetch p.images
+			where p.id = :id
+			""")
+	Optional<Product> findAdminProductByIdWithDetails(@Param("id") Long id);
 }
