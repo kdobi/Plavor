@@ -26,3 +26,4 @@ app:
     rest-api-key: ${KAKAO_REST_API_KEY:}
     client-secret: ${KAKAO_CLIENT_SECRET:}
     redirect-uri: ${KAKAO_REDIRECT_URI:http://127.0.0.1:5173/auth/kakao/callback}
+    state-cookie-secure: false

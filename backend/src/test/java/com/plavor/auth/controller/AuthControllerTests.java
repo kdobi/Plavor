@@ -6,6 +6,7 @@ import com.plavor.member.domain.SocialProvider;
 import com.plavor.member.repository.MemberRepository;
 import com.plavor.member.repository.SocialAccountRepository;
 import com.plavor.member.repository.UserCredentialRepository;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -15,10 +16,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -31,6 +34,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 @Transactional
 class AuthControllerTests {
+
+	private static final String KAKAO_OAUTH_STATE_COOKIE_NAME = "PLAVOR_KAKAO_OAUTH_STATE";
+	private static final String KAKAO_OAUTH_STATE = "test-oauth-state";
 
 	@Autowired
 	private MockMvc mockMvc;
@@ -188,19 +194,27 @@ class AuthControllerTests {
 
 	@Test
 	void getKakaoLoginUrlReturnsAuthorizationUrl() throws Exception {
-		mockMvc.perform(get("/api/auth/kakao/login-url")
-						.param("state", "test-state"))
+		MvcResult result = mockMvc.perform(get("/api/auth/kakao/login-url"))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.authorizationUrl").value("https://kauth.kakao.com/oauth/authorize?state=test-state"));
+				.andExpect(jsonPath("$.authorizationUrl", containsString("https://kauth.kakao.com/oauth/authorize?state=")))
+				.andReturn();
+
+		Cookie stateCookie = result.getResponse().getCookie(KAKAO_OAUTH_STATE_COOKIE_NAME);
+
+		assertThat(stateCookie).isNotNull();
+		assertThat(stateCookie.getValue()).isNotBlank();
+		assertThat(result.getResponse().getContentAsString()).contains("state=" + stateCookie.getValue());
 	}
 
 	@Test
 	void kakaoLoginCreatesMemberAndSocialAccount() throws Exception {
 		mockMvc.perform(post("/api/auth/kakao/login")
+						.cookie(new Cookie(KAKAO_OAUTH_STATE_COOKIE_NAME, KAKAO_OAUTH_STATE))
 						.contentType("application/json")
 						.content("""
 								{
-								  "code": "valid-kakao-code"
+								  "code": "valid-kakao-code",
+								  "state": "test-oauth-state"
 								}
 								"""))
 				.andExpect(status().isOk())
@@ -225,15 +239,18 @@ class AuthControllerTests {
 	void kakaoLoginReusesExistingSocialAccount() throws Exception {
 		String requestBody = """
 				{
-				  "code": "valid-kakao-code"
+				  "code": "valid-kakao-code",
+				  "state": "test-oauth-state"
 				}
 				""";
 
 		mockMvc.perform(post("/api/auth/kakao/login")
+						.cookie(new Cookie(KAKAO_OAUTH_STATE_COOKIE_NAME, KAKAO_OAUTH_STATE))
 						.contentType("application/json")
 						.content(requestBody))
 				.andExpect(status().isOk());
 		mockMvc.perform(post("/api/auth/kakao/login")
+						.cookie(new Cookie(KAKAO_OAUTH_STATE_COOKIE_NAME, KAKAO_OAUTH_STATE))
 						.contentType("application/json")
 						.content(requestBody))
 				.andExpect(status().isOk());
@@ -244,6 +261,22 @@ class AuthControllerTests {
 				.orElseThrow();
 
 		assertThat(socialAccount.getMember().getId()).isEqualTo(member.getId());
+	}
+
+	@Test
+	void kakaoLoginRejectsInvalidOAuthState() throws Exception {
+		mockMvc.perform(post("/api/auth/kakao/login")
+						.cookie(new Cookie(KAKAO_OAUTH_STATE_COOKIE_NAME, "different-state"))
+						.contentType("application/json")
+						.content("""
+								{
+								  "code": "valid-kakao-code",
+								  "state": "test-oauth-state"
+								}
+								"""))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("AUTH_INVALID_OAUTH_STATE"))
+				.andExpect(jsonPath("$.message").value("소셜 로그인 요청이 만료되었거나 올바르지 않습니다."));
 	}
 
 	@TestConfiguration

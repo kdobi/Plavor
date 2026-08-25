@@ -13,6 +13,7 @@ public enum ErrorCode {
 	AUTH_INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "AUTH_INVALID_CREDENTIALS", "이메일 또는 비밀번호가 올바르지 않습니다."),
 	AUTH_UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "AUTH_UNAUTHORIZED", "로그인이 필요합니다."),
 	AUTH_INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH_INVALID_TOKEN", "유효하지 않은 인증 토큰입니다."),
+	AUTH_INVALID_OAUTH_STATE(HttpStatus.BAD_REQUEST, "AUTH_INVALID_OAUTH_STATE", "소셜 로그인 요청이 만료되었거나 올바르지 않습니다."),
 	AUTH_KAKAO_LOGIN_FAILED(HttpStatus.BAD_GATEWAY, "AUTH_KAKAO_LOGIN_FAILED", "카카오 로그인 처리에 실패했습니다.");
 
 	private final HttpStatus status;

@@ -3,7 +3,6 @@ import type { FormEvent, ReactNode } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { ApiError, fetchKakaoLoginUrl } from '../api/auth'
 import { useAuth } from '../auth/auth-state'
-import { storeKakaoOAuthState } from '../auth/authStorage'
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -51,9 +50,7 @@ export function LoginPage() {
     setIsKakaoStarting(true)
 
     try {
-      const state = createOAuthState()
-      storeKakaoOAuthState(state)
-      const { authorizationUrl } = await fetchKakaoLoginUrl(state)
+      const { authorizationUrl } = await fetchKakaoLoginUrl()
 
       window.location.assign(authorizationUrl)
     } catch (error) {
@@ -124,14 +121,6 @@ export function LoginPage() {
       </p>
     </AuthShell>
   )
-}
-
-function createOAuthState() {
-  if (window.crypto.randomUUID) {
-    return window.crypto.randomUUID()
-  }
-
-  return `${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
 function AuthShell({

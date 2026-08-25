@@ -51,9 +51,8 @@ export async function login(request: LoginRequest) {
   return parseResponse<AuthTokenResponse>(response)
 }
 
-export async function fetchKakaoLoginUrl(state: string) {
-  const searchParams = new URLSearchParams({ state })
-  const response = await fetch(`/api/auth/kakao/login-url?${searchParams}`)
+export async function fetchKakaoLoginUrl() {
+  const response = await fetch('/api/auth/kakao/login-url')
 
   return parseResponse<KakaoLoginUrlResponse>(response)
 }

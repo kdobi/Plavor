@@ -21,3 +21,4 @@ app:
     rest-api-key: test-kakao-rest-api-key
     client-secret: test-kakao-client-secret
     redirect-uri: http://127.0.0.1:5173/auth/kakao/callback
+    state-cookie-secure: false

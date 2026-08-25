@@ -24,6 +24,7 @@ export interface LoginRequest {
 
 export interface KakaoLoginRequest {
   code: string
+  state: string
 }
 
 export interface KakaoLoginUrlResponse {

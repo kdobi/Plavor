@@ -2,10 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ApiError } from '../api/auth'
 import { useAuth } from '../auth/auth-state'
-import {
-  clearStoredKakaoOAuthState,
-  getStoredKakaoOAuthState,
-} from '../auth/authStorage'
 
 export function KakaoCallbackPage() {
   const navigate = useNavigate()
@@ -25,9 +21,6 @@ export function KakaoCallbackPage() {
       const kakaoError = searchParams.get('error')
       const code = searchParams.get('code')
       const returnedState = searchParams.get('state')
-      const storedState = getStoredKakaoOAuthState()
-
-      clearStoredKakaoOAuthState()
 
       if (kakaoError) {
         setMessage('카카오 로그인이 취소되었거나 승인되지 않았습니다.')
@@ -39,13 +32,13 @@ export function KakaoCallbackPage() {
         return
       }
 
-      if (!storedState || storedState !== returnedState) {
+      if (!returnedState) {
         setMessage('카카오 로그인 요청이 만료되었습니다. 다시 시도해 주세요.')
         return
       }
 
       try {
-        await loginWithKakao(code)
+        await loginWithKakao(code, returnedState)
         navigate('/', { replace: true })
       } catch (error) {
         if (error instanceof ApiError) {

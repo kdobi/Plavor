@@ -13,6 +13,7 @@ public class KakaoProperties {
 	private String authorizationUrl;
 	private String tokenUrl;
 	private String userInfoUrl;
+	private boolean stateCookieSecure;
 
 	public String getRestApiKey() {
 		return restApiKey;
@@ -60,5 +61,13 @@ public class KakaoProperties {
 
 	public void setUserInfoUrl(String userInfoUrl) {
 		this.userInfoUrl = userInfoUrl;
+	}
+
+	public boolean isStateCookieSecure() {
+		return stateCookieSecure;
+	}
+
+	public void setStateCookieSecure(boolean stateCookieSecure) {
+		this.stateCookieSecure = stateCookieSecure;
 	}
 }

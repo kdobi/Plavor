@@ -66,8 +66,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return response
   }, [])
 
-  const handleKakaoLogin = useCallback(async (code: string) => {
-    const response = await loginWithKakao({ code })
+  const handleKakaoLogin = useCallback(async (code: string, state: string) => {
+    const response = await loginWithKakao({ code, state })
 
     storeAccessToken(response.accessToken)
     setAccessToken(response.accessToken)

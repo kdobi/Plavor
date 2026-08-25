@@ -24,9 +24,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
+import java.util.Base64;
+
 @Service
 @Transactional
 public class AuthService {
+
+	private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
 	private final MemberRepository memberRepository;
 	private final UserCredentialRepository userCredentialRepository;
@@ -93,7 +98,18 @@ public class AuthService {
 		return new KakaoLoginUrlResponse(kakaoClient.createAuthorizationUrl(state));
 	}
 
-	public AuthTokenResponse loginWithKakao(KakaoLoginRequest request) {
+	@Transactional(readOnly = true)
+	public String createKakaoOAuthState() {
+		byte[] randomBytes = new byte[32];
+		SECURE_RANDOM.nextBytes(randomBytes);
+		return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
+	}
+
+	public AuthTokenResponse loginWithKakao(KakaoLoginRequest request, String storedState) {
+		if (!isValidOAuthState(request.state(), storedState)) {
+			throw new BusinessException(ErrorCode.AUTH_INVALID_OAUTH_STATE);
+		}
+
 		KakaoUserInfo kakaoUser = kakaoClient.fetchUser(request.code());
 		Member member = socialAccountRepository
 				.findByProviderAndProviderUserId(SocialProvider.KAKAO, kakaoUser.providerUserId())
@@ -102,6 +118,13 @@ public class AuthService {
 
 		JwtToken accessToken = jwtTokenProvider.generateAccessToken(member);
 		return AuthTokenResponse.of(accessToken, member);
+	}
+
+	private boolean isValidOAuthState(String returnedState, String storedState) {
+		return returnedState != null
+				&& storedState != null
+				&& !returnedState.isBlank()
+				&& returnedState.equals(storedState);
 	}
 
 	private Member createKakaoMember(KakaoUserInfo kakaoUser) {
