@@ -14,7 +14,11 @@ public enum ErrorCode {
 	AUTH_UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "AUTH_UNAUTHORIZED", "로그인이 필요합니다."),
 	AUTH_INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH_INVALID_TOKEN", "유효하지 않은 인증 토큰입니다."),
 	AUTH_INVALID_OAUTH_STATE(HttpStatus.BAD_REQUEST, "AUTH_INVALID_OAUTH_STATE", "소셜 로그인 요청이 만료되었거나 올바르지 않습니다."),
-	AUTH_KAKAO_LOGIN_FAILED(HttpStatus.BAD_GATEWAY, "AUTH_KAKAO_LOGIN_FAILED", "카카오 로그인 처리에 실패했습니다.");
+	AUTH_KAKAO_LOGIN_FAILED(HttpStatus.BAD_GATEWAY, "AUTH_KAKAO_LOGIN_FAILED", "카카오 로그인 처리에 실패했습니다."),
+
+	CART_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "CART_ITEM_NOT_FOUND", "장바구니 상품을 찾을 수 없습니다."),
+	CART_PRODUCT_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "CART_PRODUCT_NOT_AVAILABLE", "장바구니에 담을 수 없는 상품입니다."),
+	CART_QUANTITY_EXCEEDS_STOCK(HttpStatus.BAD_REQUEST, "CART_QUANTITY_EXCEEDS_STOCK", "상품 재고보다 많은 수량을 담을 수 없습니다.");
 
 	private final HttpStatus status;
 	private final String code;
