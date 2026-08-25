@@ -14,13 +14,13 @@ export function clearStoredAccessToken() {
 }
 
 export function getStoredKakaoOAuthState() {
-  return window.localStorage.getItem(KAKAO_OAUTH_STATE_KEY)
+  return window.sessionStorage.getItem(KAKAO_OAUTH_STATE_KEY)
 }
 
 export function storeKakaoOAuthState(state: string) {
-  window.localStorage.setItem(KAKAO_OAUTH_STATE_KEY, state)
+  window.sessionStorage.setItem(KAKAO_OAUTH_STATE_KEY, state)
 }
 
 export function clearStoredKakaoOAuthState() {
-  window.localStorage.removeItem(KAKAO_OAUTH_STATE_KEY)
+  window.sessionStorage.removeItem(KAKAO_OAUTH_STATE_KEY)
 }
