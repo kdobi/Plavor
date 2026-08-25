@@ -9,6 +9,8 @@ public class JwtProperties {
 
 	private String secret;
 	private long accessTokenExpirationSeconds;
+	private long refreshTokenExpirationSeconds;
+	private boolean refreshCookieSecure;
 
 	public String getSecret() {
 		return secret;
@@ -24,5 +26,21 @@ public class JwtProperties {
 
 	public void setAccessTokenExpirationSeconds(long accessTokenExpirationSeconds) {
 		this.accessTokenExpirationSeconds = accessTokenExpirationSeconds;
+	}
+
+	public long getRefreshTokenExpirationSeconds() {
+		return refreshTokenExpirationSeconds;
+	}
+
+	public void setRefreshTokenExpirationSeconds(long refreshTokenExpirationSeconds) {
+		this.refreshTokenExpirationSeconds = refreshTokenExpirationSeconds;
+	}
+
+	public boolean isRefreshCookieSecure() {
+		return refreshCookieSecure;
+	}
+
+	public void setRefreshCookieSecure(boolean refreshCookieSecure) {
+		this.refreshCookieSecure = refreshCookieSecure;
 	}
 }

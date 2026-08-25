@@ -14,6 +14,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MvcResult;
@@ -37,6 +38,7 @@ class AuthControllerTests {
 
 	private static final String KAKAO_OAUTH_STATE_COOKIE_NAME = "PLAVOR_KAKAO_OAUTH_STATE";
 	private static final String KAKAO_OAUTH_STATE = "test-oauth-state";
+	private static final String REFRESH_TOKEN_COOKIE_NAME = "PLAVOR_REFRESH_TOKEN";
 
 	@Autowired
 	private MockMvc mockMvc;
@@ -134,7 +136,7 @@ class AuthControllerTests {
 								"""))
 				.andExpect(status().isCreated());
 
-		mockMvc.perform(post("/api/auth/login")
+		MvcResult result = mockMvc.perform(post("/api/auth/login")
 						.contentType("application/json")
 						.content("""
 								{
@@ -148,7 +150,61 @@ class AuthControllerTests {
 				.andExpect(jsonPath("$.expiresIn").value(3600))
 				.andExpect(jsonPath("$.user.email").value("login@example.com"))
 				.andExpect(jsonPath("$.user.name").value("로그인 사용자"))
-				.andExpect(jsonPath("$.user.role").value("USER"));
+				.andExpect(jsonPath("$.user.role").value("USER"))
+				.andReturn();
+
+		assertRefreshCookieIssued(result);
+	}
+
+	@Test
+	void refreshReturnsNewAccessTokenAndRotatesRefreshToken() throws Exception {
+		Cookie refreshTokenCookie = loginAndGetRefreshTokenCookie("refresh@example.com");
+
+		MvcResult result = mockMvc.perform(post("/api/auth/refresh")
+						.cookie(refreshTokenCookie))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.accessToken", matchesPattern("^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$")))
+				.andExpect(jsonPath("$.tokenType").value("Bearer"))
+				.andExpect(jsonPath("$.expiresIn").value(3600))
+				.andExpect(jsonPath("$.user.email").value("refresh@example.com"))
+				.andReturn();
+
+		Cookie rotatedRefreshTokenCookie = getRefreshTokenCookie(result);
+
+		assertRefreshCookieIssued(result);
+		assertThat(rotatedRefreshTokenCookie.getValue()).isNotEqualTo(refreshTokenCookie.getValue());
+
+		mockMvc.perform(post("/api/auth/refresh")
+						.cookie(refreshTokenCookie))
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.code").value("AUTH_INVALID_REFRESH_TOKEN"))
+				.andExpect(jsonPath("$.message").value("로그인 세션이 만료되었습니다."));
+	}
+
+	@Test
+	void refreshRejectsMissingCookie() throws Exception {
+		mockMvc.perform(post("/api/auth/refresh"))
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.code").value("AUTH_INVALID_REFRESH_TOKEN"))
+				.andExpect(jsonPath("$.message").value("로그인 세션이 만료되었습니다."));
+	}
+
+	@Test
+	void logoutRevokesRefreshTokenAndExpiresCookie() throws Exception {
+		Cookie refreshTokenCookie = loginAndGetRefreshTokenCookie("logout@example.com");
+
+		MvcResult result = mockMvc.perform(post("/api/auth/logout")
+						.cookie(refreshTokenCookie))
+				.andExpect(status().isNoContent())
+				.andReturn();
+
+		assertRefreshCookieExpired(result);
+
+		mockMvc.perform(post("/api/auth/refresh")
+						.cookie(refreshTokenCookie))
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.code").value("AUTH_INVALID_REFRESH_TOKEN"))
+				.andExpect(jsonPath("$.message").value("로그인 세션이 만료되었습니다."));
 	}
 
 	@Test
@@ -208,7 +264,7 @@ class AuthControllerTests {
 
 	@Test
 	void kakaoLoginCreatesMemberAndSocialAccount() throws Exception {
-		mockMvc.perform(post("/api/auth/kakao/login")
+		MvcResult result = mockMvc.perform(post("/api/auth/kakao/login")
 						.cookie(new Cookie(KAKAO_OAUTH_STATE_COOKIE_NAME, KAKAO_OAUTH_STATE))
 						.contentType("application/json")
 						.content("""
@@ -224,7 +280,10 @@ class AuthControllerTests {
 				.andExpect(jsonPath("$.user.email").value("kakao_3948571029@social.plavor.local"))
 				.andExpect(jsonPath("$.user.name").value("카카오 회원"))
 				.andExpect(jsonPath("$.user.role").value("USER"))
-				.andExpect(jsonPath("$.user.status").value("ACTIVE"));
+				.andExpect(jsonPath("$.user.status").value("ACTIVE"))
+				.andReturn();
+
+		assertRefreshCookieIssued(result);
 
 		var socialAccount = socialAccountRepository
 				.findByProviderAndProviderUserId(SocialProvider.KAKAO, "3948571029")
@@ -277,6 +336,61 @@ class AuthControllerTests {
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.code").value("AUTH_INVALID_OAUTH_STATE"))
 				.andExpect(jsonPath("$.message").value("소셜 로그인 요청이 만료되었거나 올바르지 않습니다."));
+	}
+
+	private Cookie loginAndGetRefreshTokenCookie(String email) throws Exception {
+		mockMvc.perform(post("/api/auth/signup")
+						.contentType("application/json")
+						.content("""
+								{
+								  "email": "%s",
+								  "password": "password1234",
+								  "name": "로그인 사용자"
+								}
+								""".formatted(email)))
+				.andExpect(status().isCreated());
+
+		MvcResult result = mockMvc.perform(post("/api/auth/login")
+						.contentType("application/json")
+						.content("""
+								{
+								  "email": "%s",
+								  "password": "password1234"
+								}
+								""".formatted(email.toUpperCase())))
+				.andExpect(status().isOk())
+				.andReturn();
+
+		return getRefreshTokenCookie(result);
+	}
+
+	private Cookie getRefreshTokenCookie(MvcResult result) {
+		Cookie refreshTokenCookie = result.getResponse().getCookie(REFRESH_TOKEN_COOKIE_NAME);
+
+		assertThat(refreshTokenCookie).isNotNull();
+		assertThat(refreshTokenCookie.getValue()).isNotBlank();
+
+		return refreshTokenCookie;
+	}
+
+	private void assertRefreshCookieIssued(MvcResult result) {
+		assertThat(result.getResponse().getHeaders(HttpHeaders.SET_COOKIE))
+				.anySatisfy(header -> assertThat(header)
+						.contains(REFRESH_TOKEN_COOKIE_NAME + "=")
+						.contains("Path=/api/auth")
+						.contains("Max-Age=1209600")
+						.contains("HttpOnly")
+						.contains("SameSite=Lax"));
+	}
+
+	private void assertRefreshCookieExpired(MvcResult result) {
+		assertThat(result.getResponse().getHeaders(HttpHeaders.SET_COOKIE))
+				.anySatisfy(header -> assertThat(header)
+						.contains(REFRESH_TOKEN_COOKIE_NAME + "=")
+						.contains("Path=/api/auth")
+						.contains("Max-Age=0")
+						.contains("HttpOnly")
+						.contains("SameSite=Lax"));
 	}
 
 	@TestConfiguration

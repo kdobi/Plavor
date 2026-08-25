@@ -27,7 +27,14 @@ public class SecurityConfig {
 				.authorizeHttpRequests(authorize -> authorize
 						.requestMatchers(HttpMethod.GET, "/api/products", "/api/products/**", "/api/categories").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/auth/kakao/login-url").permitAll()
-						.requestMatchers(HttpMethod.POST, "/api/auth/signup", "/api/auth/login", "/api/auth/kakao/login").permitAll()
+						.requestMatchers(
+								HttpMethod.POST,
+								"/api/auth/signup",
+								"/api/auth/login",
+								"/api/auth/kakao/login",
+								"/api/auth/refresh",
+								"/api/auth/logout"
+						).permitAll()
 						.requestMatchers(
 								"/actuator/health",
 								"/swagger-ui.html",

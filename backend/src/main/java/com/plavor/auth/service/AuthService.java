@@ -38,6 +38,7 @@ public class AuthService {
 	private final SocialAccountRepository socialAccountRepository;
 	private final PasswordEncoder passwordEncoder;
 	private final JwtTokenProvider jwtTokenProvider;
+	private final RefreshTokenService refreshTokenService;
 	private final KakaoClient kakaoClient;
 
 	public AuthService(
@@ -46,6 +47,7 @@ public class AuthService {
 			SocialAccountRepository socialAccountRepository,
 			PasswordEncoder passwordEncoder,
 			JwtTokenProvider jwtTokenProvider,
+			RefreshTokenService refreshTokenService,
 			KakaoClient kakaoClient
 	) {
 		this.memberRepository = memberRepository;
@@ -53,6 +55,7 @@ public class AuthService {
 		this.socialAccountRepository = socialAccountRepository;
 		this.passwordEncoder = passwordEncoder;
 		this.jwtTokenProvider = jwtTokenProvider;
+		this.refreshTokenService = refreshTokenService;
 		this.kakaoClient = kakaoClient;
 	}
 
@@ -78,8 +81,7 @@ public class AuthService {
 		return AuthUserResponse.from(member);
 	}
 
-	@Transactional(readOnly = true)
-	public AuthTokenResponse login(LoginRequest request) {
+	public AuthSession login(LoginRequest request) {
 		Member member = memberRepository.findByEmail(normalizeEmail(request.email()))
 				.orElseThrow(this::invalidCredentials);
 		UserCredential credential = userCredentialRepository.findByMemberId(member.getId())
@@ -89,8 +91,7 @@ public class AuthService {
 			throw invalidCredentials();
 		}
 
-		JwtToken accessToken = jwtTokenProvider.generateAccessToken(member);
-		return AuthTokenResponse.of(accessToken, member);
+		return createSession(member);
 	}
 
 	@Transactional(readOnly = true)
@@ -105,7 +106,7 @@ public class AuthService {
 		return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
 	}
 
-	public AuthTokenResponse loginWithKakao(KakaoLoginRequest request, String storedState) {
+	public AuthSession loginWithKakao(KakaoLoginRequest request, String storedState) {
 		if (!isValidOAuthState(request.state(), storedState)) {
 			throw new BusinessException(ErrorCode.AUTH_INVALID_OAUTH_STATE);
 		}
@@ -116,8 +117,27 @@ public class AuthService {
 				.map(SocialAccount::getMember)
 				.orElseGet(() -> createKakaoMember(kakaoUser));
 
+		return createSession(member);
+	}
+
+	public AuthSession refresh(String refreshToken) {
+		Member member = refreshTokenService.verifyAndRevoke(refreshToken);
+		return createSession(member);
+	}
+
+	public void logout(String refreshToken) {
+		refreshTokenService.revoke(refreshToken);
+	}
+
+	private AuthSession createSession(Member member) {
 		JwtToken accessToken = jwtTokenProvider.generateAccessToken(member);
-		return AuthTokenResponse.of(accessToken, member);
+		IssuedRefreshToken refreshToken = refreshTokenService.issue(member);
+
+		return new AuthSession(
+				AuthTokenResponse.of(accessToken, member),
+				refreshToken.value(),
+				refreshToken.expiresInSeconds()
+		);
 	}
 
 	private boolean isValidOAuthState(String returnedState, String storedState) {

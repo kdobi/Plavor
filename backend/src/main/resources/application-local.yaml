@@ -22,6 +22,7 @@ management:
 app:
   jwt:
     secret: plavor-local-jwt-secret-key-for-development-only-change-me-2026
+    refresh-cookie-secure: false
   kakao:
     rest-api-key: ${KAKAO_REST_API_KEY:}
     client-secret: ${KAKAO_CLIENT_SECRET:}

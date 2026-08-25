@@ -1,13 +1,13 @@
-const ACCESS_TOKEN_KEY = 'plavor.accessToken'
+let memoryAccessToken: string | null = null
 
 export function getStoredAccessToken() {
-  return window.localStorage.getItem(ACCESS_TOKEN_KEY)
+  return memoryAccessToken
 }
 
 export function storeAccessToken(accessToken: string) {
-  window.localStorage.setItem(ACCESS_TOKEN_KEY, accessToken)
+  memoryAccessToken = accessToken
 }
 
 export function clearStoredAccessToken() {
-  window.localStorage.removeItem(ACCESS_TOKEN_KEY)
+  memoryAccessToken = null
 }

@@ -30,6 +30,7 @@ export class ApiError extends Error {
 export async function signup(request: SignupRequest) {
   const response = await fetch('/api/auth/signup', {
     method: 'POST',
+    credentials: 'same-origin',
     headers: {
       'Content-Type': 'application/json',
     },
@@ -42,6 +43,7 @@ export async function signup(request: SignupRequest) {
 export async function login(request: LoginRequest) {
   const response = await fetch('/api/auth/login', {
     method: 'POST',
+    credentials: 'same-origin',
     headers: {
       'Content-Type': 'application/json',
     },
@@ -52,7 +54,9 @@ export async function login(request: LoginRequest) {
 }
 
 export async function fetchKakaoLoginUrl() {
-  const response = await fetch('/api/auth/kakao/login-url')
+  const response = await fetch('/api/auth/kakao/login-url', {
+    credentials: 'same-origin',
+  })
 
   return parseResponse<KakaoLoginUrlResponse>(response)
 }
@@ -60,6 +64,7 @@ export async function fetchKakaoLoginUrl() {
 export async function loginWithKakao(request: KakaoLoginRequest) {
   const response = await fetch('/api/auth/kakao/login', {
     method: 'POST',
+    credentials: 'same-origin',
     headers: {
       'Content-Type': 'application/json',
     },
@@ -69,8 +74,30 @@ export async function loginWithKakao(request: KakaoLoginRequest) {
   return parseResponse<AuthTokenResponse>(response)
 }
 
+export async function refreshAccessToken(signal?: AbortSignal) {
+  const response = await fetch('/api/auth/refresh', {
+    method: 'POST',
+    credentials: 'same-origin',
+    signal,
+  })
+
+  return parseResponse<AuthTokenResponse>(response)
+}
+
+export async function logoutSession() {
+  const response = await fetch('/api/auth/logout', {
+    method: 'POST',
+    credentials: 'same-origin',
+  })
+
+  if (!response.ok) {
+    await parseResponse<never>(response)
+  }
+}
+
 export async function fetchMe(accessToken: string, signal?: AbortSignal) {
   const response = await fetch('/api/members/me', {
+    credentials: 'same-origin',
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
