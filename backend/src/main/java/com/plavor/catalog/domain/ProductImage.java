@@ -44,6 +44,14 @@ public class ProductImage {
 	protected ProductImage() {
 	}
 
+	public ProductImage(Product product, String imageUrl, String altText, int displayOrder, boolean thumbnail) {
+		this.product = product;
+		this.imageUrl = imageUrl;
+		this.altText = altText;
+		this.displayOrder = displayOrder;
+		this.thumbnail = thumbnail;
+	}
+
 	public Long getId() {
 		return id;
 	}

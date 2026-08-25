@@ -1,6 +1,7 @@
 package com.plavor.catalog.domain;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -49,7 +50,7 @@ public class Product {
 	@Column(nullable = false, length = 20)
 	private ProductStatus status;
 
-	@OneToMany(mappedBy = "product")
+	@OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
 	@OrderBy("displayOrder ASC, id ASC")
 	private List<ProductImage> images = new ArrayList<>();
 
@@ -62,6 +63,43 @@ public class Product {
 	private LocalDateTime updatedAt;
 
 	protected Product() {
+	}
+
+	public Product(
+			Category category,
+			String name,
+			String description,
+			long price,
+			int stockQuantity,
+			ProductStatus status
+	) {
+		this.category = category;
+		this.name = name;
+		this.description = description;
+		this.price = price;
+		this.stockQuantity = stockQuantity;
+		this.status = status;
+	}
+
+	public void update(
+			Category category,
+			String name,
+			String description,
+			long price,
+			int stockQuantity,
+			ProductStatus status
+	) {
+		this.category = category;
+		this.name = name;
+		this.description = description;
+		this.price = price;
+		this.stockQuantity = stockQuantity;
+		this.status = status;
+	}
+
+	public void replaceImages(List<ProductImage> images) {
+		this.images.clear();
+		this.images.addAll(images);
 	}
 
 	public Long getId() {

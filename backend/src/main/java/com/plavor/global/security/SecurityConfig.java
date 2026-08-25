@@ -18,12 +18,16 @@ public class SecurityConfig {
 	public SecurityFilterChain securityFilterChain(
 			HttpSecurity http,
 			JwtAuthenticationFilter jwtAuthenticationFilter,
-			RestAuthenticationEntryPoint restAuthenticationEntryPoint
+			RestAuthenticationEntryPoint restAuthenticationEntryPoint,
+			RestAccessDeniedHandler restAccessDeniedHandler
 	) throws Exception {
 		return http
 				.csrf(AbstractHttpConfigurer::disable)
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-				.exceptionHandling(exception -> exception.authenticationEntryPoint(restAuthenticationEntryPoint))
+				.exceptionHandling(exception -> exception
+						.authenticationEntryPoint(restAuthenticationEntryPoint)
+						.accessDeniedHandler(restAccessDeniedHandler)
+				)
 				.authorizeHttpRequests(authorize -> authorize
 						.requestMatchers(HttpMethod.GET, "/api/products", "/api/products/**", "/api/categories").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/auth/kakao/login-url").permitAll()
@@ -35,6 +39,7 @@ public class SecurityConfig {
 								"/api/auth/refresh",
 								"/api/auth/logout"
 						).permitAll()
+						.requestMatchers("/api/admin/**").hasRole("ADMIN")
 						.requestMatchers(
 								"/actuator/health",
 								"/swagger-ui.html",
