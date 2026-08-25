@@ -12,3 +12,8 @@ spring:
 app:
   jwt:
     secret: ${JWT_SECRET}
+  kakao:
+    rest-api-key: ${KAKAO_REST_API_KEY}
+    client-secret: ${KAKAO_CLIENT_SECRET}
+    redirect-uri: ${KAKAO_REDIRECT_URI}
+    state-cookie-secure: true

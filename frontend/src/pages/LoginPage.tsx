@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { ApiError } from '../api/auth'
+import { ApiError, fetchKakaoLoginUrl } from '../api/auth'
 import { useAuth } from '../auth/auth-state'
 
 export function LoginPage() {
@@ -12,6 +12,7 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isKakaoStarting, setIsKakaoStarting] = useState(false)
 
   const redirectTo =
     typeof location.state === 'object' &&
@@ -41,6 +42,24 @@ export function LoginPage() {
       }
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  async function handleKakaoLogin() {
+    setMessage('')
+    setIsKakaoStarting(true)
+
+    try {
+      const { authorizationUrl } = await fetchKakaoLoginUrl()
+
+      window.location.assign(authorizationUrl)
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setMessage(error.message)
+      } else {
+        setMessage('카카오 로그인을 시작하지 못했습니다.')
+      }
+      setIsKakaoStarting(false)
     }
   }
 
@@ -87,9 +106,14 @@ export function LoginPage() {
         <span>또는</span>
       </div>
 
-      <button className="auth-social-button kakao" type="button">
+      <button
+        className="auth-social-button kakao"
+        disabled={isSubmitting || isKakaoStarting}
+        type="button"
+        onClick={handleKakaoLogin}
+      >
         <span>●</span>
-        카카오로 계속하기
+        {isKakaoStarting ? '카카오로 이동 중' : '카카오로 계속하기'}
       </button>
 
       <p className="auth-switch">

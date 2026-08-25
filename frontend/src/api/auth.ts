@@ -2,6 +2,8 @@ import type {
   ApiErrorResponse,
   AuthTokenResponse,
   AuthUser,
+  KakaoLoginRequest,
+  KakaoLoginUrlResponse,
   LoginRequest,
   SignupRequest,
 } from '../types/auth'
@@ -39,6 +41,24 @@ export async function signup(request: SignupRequest) {
 
 export async function login(request: LoginRequest) {
   const response = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  })
+
+  return parseResponse<AuthTokenResponse>(response)
+}
+
+export async function fetchKakaoLoginUrl() {
+  const response = await fetch('/api/auth/kakao/login-url')
+
+  return parseResponse<KakaoLoginUrlResponse>(response)
+}
+
+export async function loginWithKakao(request: KakaoLoginRequest) {
+  const response = await fetch('/api/auth/kakao/login', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

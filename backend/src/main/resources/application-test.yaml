@@ -17,3 +17,8 @@ management:
 app:
   jwt:
     secret: plavor-test-jwt-secret-key-for-automated-tests-only-2026
+  kakao:
+    rest-api-key: test-kakao-rest-api-key
+    client-secret: test-kakao-client-secret
+    redirect-uri: http://127.0.0.1:5173/auth/kakao/callback
+    state-cookie-secure: false
