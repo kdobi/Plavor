@@ -1,6 +1,8 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import './App.css'
 import { AuthProvider } from './auth/AuthContext'
+import { AdminProductFormPage } from './pages/AdminProductFormPage'
+import { AdminProductsPage } from './pages/AdminProductsPage'
 import { CartPage } from './pages/CartPage'
 import { HomePage } from './pages/HomePage'
 import { KakaoCallbackPage } from './pages/KakaoCallbackPage'
@@ -25,6 +27,12 @@ function App() {
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/orders/complete/:orderId" element={<OrderCompletePage />} />
           <Route path="/orders/:orderId" element={<OrderDetailPage />} />
+          <Route path="/admin/products" element={<AdminProductsPage />} />
+          <Route path="/admin/products/new" element={<AdminProductFormPage />} />
+          <Route
+            path="/admin/products/:productId/edit"
+            element={<AdminProductFormPage />}
+          />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
