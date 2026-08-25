@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
+import type { FormEvent } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { ApiError } from '../api/auth'
 import { deleteCartItem, fetchCart, updateCartItem } from '../api/cart'
+import { createOrder } from '../api/order'
 import { useAuth } from '../auth/auth-state'
 import { SiteHeader } from '../components/SiteHeader'
 import type { Cart, CartItem } from '../types/cart'
@@ -15,8 +17,18 @@ export function CartPage() {
   const [cart, setCart] = useState<Cart | null>(null)
   const [selectedItemIds, setSelectedItemIds] = useState<number[]>([])
   const [message, setMessage] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [updatingItemId, setUpdatingItemId] = useState<number | null>(null)
+  const [isOrdering, setIsOrdering] = useState(false)
+  const [orderForm, setOrderForm] = useState({
+    receiverName: '',
+    receiverPhone: '',
+    postalCode: '',
+    address: '',
+    addressDetail: '',
+    deliveryMessage: '',
+  })
 
   useEffect(() => {
     if (!accessToken) {
@@ -75,6 +87,8 @@ export function CartPage() {
   const selectedPaymentAmount = selectedAmount + selectedDeliveryFee
   const isAllSelected =
     Boolean(cart?.items.length) && selectedItemIds.length === cart?.items.length
+  const receiverName = orderForm.receiverName || user?.name || ''
+  const receiverPhone = orderForm.receiverPhone || user?.phone || ''
 
   async function handleQuantityChange(item: CartItem, nextQuantity: number) {
     if (!accessToken || nextQuantity < 1 || nextQuantity > item.stockQuantity) {
@@ -83,6 +97,7 @@ export function CartPage() {
 
     setUpdatingItemId(item.id)
     setMessage('')
+    setSuccessMessage('')
 
     try {
       const data = await updateCartItem(accessToken, item.id, {
@@ -109,6 +124,7 @@ export function CartPage() {
 
     setUpdatingItemId(itemId)
     setMessage('')
+    setSuccessMessage('')
 
     try {
       await deleteCartItem(accessToken, itemId)
@@ -130,6 +146,7 @@ export function CartPage() {
 
     setUpdatingItemId(-1)
     setMessage('')
+    setSuccessMessage('')
 
     try {
       for (const itemId of selectedItemIds) {
@@ -163,6 +180,46 @@ export function CartPage() {
         ? current.filter((id) => id !== itemId)
         : [...current, itemId],
     )
+  }
+
+  function handleOrderFormChange(field: keyof typeof orderForm, value: string) {
+    setOrderForm((current) => ({
+      ...current,
+      [field]: value,
+    }))
+  }
+
+  async function handleCreateOrder(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (!accessToken || selectedItemIds.length === 0) {
+      return
+    }
+
+    setIsOrdering(true)
+    setMessage('')
+    setSuccessMessage('')
+
+    try {
+      const order = await createOrder(accessToken, {
+        cartItemIds: selectedItemIds,
+        receiverName,
+        receiverPhone,
+        postalCode: orderForm.postalCode,
+        address: orderForm.address,
+        addressDetail: orderForm.addressDetail.trim() || undefined,
+        deliveryMessage: orderForm.deliveryMessage.trim() || undefined,
+      })
+      const data = await fetchCart(accessToken)
+
+      setCart(data)
+      setSelectedItemIds(data.items.map((item) => item.id))
+      setSuccessMessage(`주문이 생성되었습니다. 주문번호 ${order.orderNumber}`)
+    } catch (error) {
+      setMessage(readApiMessage(error, '주문을 생성하지 못했습니다.'))
+    } finally {
+      setIsOrdering(false)
+    }
   }
 
   return (
@@ -253,32 +310,122 @@ export function CartPage() {
 
               <aside className="cart-summary" aria-label="주문 요약">
                 <h2>주문 요약</h2>
-                <dl>
-                  <div>
-                    <dt>선택 상품</dt>
-                    <dd>{selectedQuantity}개</dd>
+                <form className="cart-order-form" onSubmit={handleCreateOrder}>
+                  <div className="cart-order-fields">
+                    <label>
+                      <span>수령자</span>
+                      <input
+                        autoComplete="name"
+                        required
+                        type="text"
+                        value={receiverName}
+                        placeholder="김동빈"
+                        onChange={(event) =>
+                          handleOrderFormChange('receiverName', event.target.value)
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      <span>연락처</span>
+                      <input
+                        autoComplete="tel"
+                        inputMode="tel"
+                        required
+                        type="tel"
+                        value={receiverPhone}
+                        placeholder="01012345678"
+                        onChange={(event) =>
+                          handleOrderFormChange('receiverPhone', event.target.value)
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      <span>우편번호</span>
+                      <input
+                        autoComplete="postal-code"
+                        required
+                        type="text"
+                        value={orderForm.postalCode}
+                        placeholder="06236"
+                        onChange={(event) =>
+                          handleOrderFormChange('postalCode', event.target.value)
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      <span>주소</span>
+                      <input
+                        autoComplete="street-address"
+                        required
+                        type="text"
+                        value={orderForm.address}
+                        placeholder="서울특별시 강남구 테헤란로 123"
+                        onChange={(event) =>
+                          handleOrderFormChange('address', event.target.value)
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      <span>상세 주소</span>
+                      <input
+                        type="text"
+                        value={orderForm.addressDetail}
+                        placeholder="선택 입력"
+                        onChange={(event) =>
+                          handleOrderFormChange('addressDetail', event.target.value)
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      <span>배송 요청사항</span>
+                      <textarea
+                        rows={3}
+                        value={orderForm.deliveryMessage}
+                        placeholder="선택 입력"
+                        onChange={(event) =>
+                          handleOrderFormChange('deliveryMessage', event.target.value)
+                        }
+                      />
+                    </label>
                   </div>
-                  <div>
-                    <dt>상품 금액</dt>
-                    <dd>{currencyFormatter.format(selectedAmount)}원</dd>
-                  </div>
-                  <div>
-                    <dt>배송비</dt>
-                    <dd>
-                      {selectedItems.length > 0
-                        ? `${currencyFormatter.format(selectedDeliveryFee)}원`
-                        : '-'}
-                    </dd>
-                  </div>
-                  <div className="cart-total-row">
-                    <dt>예상 결제금액</dt>
-                    <dd>{currencyFormatter.format(selectedPaymentAmount)}원</dd>
-                  </div>
-                </dl>
-                {message && <p className="cart-message">{message}</p>}
-                <button disabled={selectedItems.length === 0} type="button">
-                  총 {selectedQuantity}개 주문하기
-                </button>
+
+                  <dl>
+                    <div>
+                      <dt>선택 상품</dt>
+                      <dd>{selectedQuantity}개</dd>
+                    </div>
+                    <div>
+                      <dt>상품 금액</dt>
+                      <dd>{currencyFormatter.format(selectedAmount)}원</dd>
+                    </div>
+                    <div>
+                      <dt>배송비</dt>
+                      <dd>
+                        {selectedItems.length > 0
+                          ? `${currencyFormatter.format(selectedDeliveryFee)}원`
+                          : '-'}
+                      </dd>
+                    </div>
+                    <div className="cart-total-row">
+                      <dt>예상 결제금액</dt>
+                      <dd>{currencyFormatter.format(selectedPaymentAmount)}원</dd>
+                    </div>
+                  </dl>
+                  {message && <p className="cart-message">{message}</p>}
+                  {successMessage && (
+                    <p className="cart-message success">{successMessage}</p>
+                  )}
+                  <button disabled={selectedItems.length === 0 || isOrdering} type="submit">
+                    {isOrdering
+                      ? '주문 생성 중'
+                      : `총 ${selectedQuantity}개 주문하기`}
+                  </button>
+                </form>
               </aside>
             </section>
           </>
