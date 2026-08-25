@@ -2286,50 +2286,6 @@
   font-weight: 830;
 }
 
-.admin-home-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.admin-home-card {
-  display: grid;
-  gap: 10px;
-  min-height: 180px;
-  align-content: end;
-  border: 1px solid #eeeeee;
-  border-radius: 8px;
-  padding: 24px;
-  color: #111111;
-  background: #ffffff;
-  text-decoration: none;
-}
-
-.admin-home-card:hover {
-  border-color: #111111;
-}
-
-.admin-home-card span {
-  color: #999999;
-  font-size: 12px;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.admin-home-card strong {
-  color: #111111;
-  font-size: 24px;
-  font-weight: 850;
-  line-height: 1.2;
-}
-
-.admin-home-card small {
-  color: #666666;
-  font-size: 14px;
-  font-weight: 690;
-  line-height: 1.55;
-}
-
 .admin-toolbar {
   display: grid;
   grid-template-columns: minmax(260px, 1fr) 180px 160px;
@@ -3378,10 +3334,6 @@
 
   .admin-heading h1 {
     font-size: 28px;
-  }
-
-  .admin-home-grid {
-    grid-template-columns: 1fr;
   }
 
   .admin-subnav {

@@ -18,7 +18,7 @@ export function AdminNavigation({ active }: { active: AdminSection }) {
 export function AdminBreadcrumb({ current }: { current: string }) {
   return (
     <nav className="admin-breadcrumb" aria-label="현재 위치">
-      <Link to="/admin">관리자</Link>
+      <Link to="/admin/products">관리자</Link>
       <span>/</span>
       <strong>{current}</strong>
     </nav>
