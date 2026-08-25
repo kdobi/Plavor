@@ -16,6 +16,12 @@ export function formatOrderStatus(status: OrderStatus) {
       return '주문 접수'
     case 'PAID':
       return '결제 완료'
+    case 'PREPARING':
+      return '배송 준비'
+    case 'SHIPPED':
+      return '배송 중'
+    case 'DELIVERED':
+      return '배송 완료'
     case 'CANCELED':
       return '주문 취소'
   }

@@ -182,9 +182,17 @@ export function AdminProductsPage() {
               <p className="eyebrow">Admin Catalog</p>
               <h1>상품 관리</h1>
             </div>
-            <Link className="admin-primary-link" to="/admin/products/new">
-              상품 등록
-            </Link>
+            <div className="admin-heading-actions">
+              <nav className="admin-subnav" aria-label="관리자 메뉴">
+                <Link className="active" to="/admin/products">
+                  상품 관리
+                </Link>
+                <Link to="/admin/orders">주문 관리</Link>
+              </nav>
+              <Link className="admin-primary-link" to="/admin/products/new">
+                상품 등록
+              </Link>
+            </div>
           </section>
 
           <section className="admin-toolbar" aria-label="상품 검색 조건">

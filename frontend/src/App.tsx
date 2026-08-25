@@ -1,6 +1,8 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import './App.css'
 import { AuthProvider } from './auth/AuthContext'
+import { AdminOrderDetailPage } from './pages/AdminOrderDetailPage'
+import { AdminOrdersPage } from './pages/AdminOrdersPage'
 import { AdminProductFormPage } from './pages/AdminProductFormPage'
 import { AdminProductsPage } from './pages/AdminProductsPage'
 import { CartPage } from './pages/CartPage'
@@ -33,6 +35,8 @@ function App() {
             path="/admin/products/:productId/edit"
             element={<AdminProductFormPage />}
           />
+          <Route path="/admin/orders" element={<AdminOrdersPage />} />
+          <Route path="/admin/orders/:orderId" element={<AdminOrderDetailPage />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

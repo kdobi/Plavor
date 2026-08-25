@@ -4,6 +4,7 @@ import type {
   ProductImage,
   ProductStatus,
 } from './catalog'
+import type { OrderItem, OrderStatus } from './order'
 
 export type AdminProduct = {
   id: number
@@ -40,3 +41,28 @@ export type AdminProductStatusUpdateRequest = {
 }
 
 export type AdminProductPage = PageResponse<AdminProduct>
+
+export type AdminOrder = {
+  id: number
+  orderNumber: string
+  status: OrderStatus
+  totalAmount: number
+  memberId: number
+  memberEmail: string
+  memberName: string
+  receiverName: string
+  receiverPhone: string
+  postalCode: string
+  address: string
+  addressDetail: string | null
+  deliveryMessage: string | null
+  orderedAt: string
+  updatedAt: string
+  items: OrderItem[]
+}
+
+export type AdminOrderStatusUpdateRequest = {
+  status: OrderStatus
+}
+
+export type AdminOrderPage = PageResponse<AdminOrder>
