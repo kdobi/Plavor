@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
@@ -22,12 +23,14 @@ public record OrderCreateRequest(
 
 		@Schema(description = "수령자 연락처", example = "01012345678")
 		@NotBlank(message = "수령자 연락처는 필수입니다.")
-		@Size(max = 30, message = "수령자 연락처는 30자 이하여야 합니다.")
+		@Size(max = 11, message = "수령자 연락처는 11자 이하여야 합니다.")
+		@Pattern(regexp = "^01[016789]\\d{7,8}$", message = "휴대폰 번호 형식이 올바르지 않습니다.")
 		String receiverPhone,
 
 		@Schema(description = "우편번호", example = "06236")
 		@NotBlank(message = "우편번호는 필수입니다.")
-		@Size(max = 20, message = "우편번호는 20자 이하여야 합니다.")
+		@Size(max = 5, message = "우편번호는 5자 이하여야 합니다.")
+		@Pattern(regexp = "^\\d{5}$", message = "우편번호는 5자리 숫자여야 합니다.")
 		String postalCode,
 
 		@Schema(description = "기본 주소", example = "서울특별시 강남구 테헤란로 123")

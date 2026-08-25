@@ -10,6 +10,21 @@ import type { Cart, CartItem } from '../types/cart'
 import { currencyFormatter, formatImageUrl } from '../utils/catalog'
 
 const DELIVERY_FEE = 3000
+const PHONE_MAX_LENGTH = 11
+const POSTAL_CODE_LENGTH = 5
+const ORDER_FORM_FIELDS = [
+  'receiverName',
+  'receiverPhone',
+  'postalCode',
+  'address',
+  'addressDetail',
+  'deliveryMessage',
+] as const
+
+type OrderFormField = (typeof ORDER_FORM_FIELDS)[number]
+type OrderForm = Record<OrderFormField, string>
+type OrderFieldErrors = Partial<Record<OrderFormField, string>>
+const ORDER_FORM_FIELD_SET = new Set<string>(ORDER_FORM_FIELDS)
 
 export function CartPage() {
   const location = useLocation()
@@ -21,7 +36,7 @@ export function CartPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [updatingItemId, setUpdatingItemId] = useState<number | null>(null)
   const [isOrdering, setIsOrdering] = useState(false)
-  const [orderForm, setOrderForm] = useState({
+  const [orderForm, setOrderForm] = useState<OrderForm>({
     receiverName: '',
     receiverPhone: '',
     postalCode: '',
@@ -29,6 +44,7 @@ export function CartPage() {
     addressDetail: '',
     deliveryMessage: '',
   })
+  const [orderFieldErrors, setOrderFieldErrors] = useState<OrderFieldErrors>({})
 
   useEffect(() => {
     if (!accessToken) {
@@ -88,7 +104,8 @@ export function CartPage() {
   const isAllSelected =
     Boolean(cart?.items.length) && selectedItemIds.length === cart?.items.length
   const receiverName = orderForm.receiverName || user?.name || ''
-  const receiverPhone = orderForm.receiverPhone || user?.phone || ''
+  const receiverPhone =
+    orderForm.receiverPhone || normalizeDigits(user?.phone ?? '', PHONE_MAX_LENGTH)
 
   async function handleQuantityChange(item: CartItem, nextQuantity: number) {
     if (!accessToken || nextQuantity < 1 || nextQuantity > item.stockQuantity) {
@@ -182,11 +199,20 @@ export function CartPage() {
     )
   }
 
-  function handleOrderFormChange(field: keyof typeof orderForm, value: string) {
+  function handleOrderFormChange(field: OrderFormField, value: string) {
     setOrderForm((current) => ({
       ...current,
       [field]: value,
     }))
+    setOrderFieldErrors((current) => {
+      if (!current[field]) {
+        return current
+      }
+
+      const next = { ...current }
+      delete next[field]
+      return next
+    })
   }
 
   async function handleCreateOrder(event: FormEvent<HTMLFormElement>) {
@@ -199,6 +225,7 @@ export function CartPage() {
     setIsOrdering(true)
     setMessage('')
     setSuccessMessage('')
+    setOrderFieldErrors({})
 
     try {
       const order = await createOrder(accessToken, {
@@ -216,6 +243,12 @@ export function CartPage() {
       setSelectedItemIds(data.items.map((item) => item.id))
       setSuccessMessage(`주문이 생성되었습니다. 주문번호 ${order.orderNumber}`)
     } catch (error) {
+      const nextFieldErrors = readOrderFieldErrors(error)
+
+      if (Object.keys(nextFieldErrors).length > 0) {
+        setOrderFieldErrors(nextFieldErrors)
+      }
+
       setMessage(readApiMessage(error, '주문을 생성하지 못했습니다.'))
     } finally {
       setIsOrdering(false)
@@ -315,6 +348,7 @@ export function CartPage() {
                     <label>
                       <span>수령자</span>
                       <input
+                        aria-invalid={Boolean(orderFieldErrors.receiverName)}
                         autoComplete="name"
                         required
                         type="text"
@@ -324,40 +358,71 @@ export function CartPage() {
                           handleOrderFormChange('receiverName', event.target.value)
                         }
                       />
+                      {orderFieldErrors.receiverName && (
+                        <small className="cart-field-message">
+                          {orderFieldErrors.receiverName}
+                        </small>
+                      )}
                     </label>
 
                     <label>
                       <span>연락처</span>
                       <input
+                        aria-invalid={Boolean(orderFieldErrors.receiverPhone)}
                         autoComplete="tel"
-                        inputMode="tel"
+                        inputMode="numeric"
+                        maxLength={PHONE_MAX_LENGTH}
+                        pattern="01[016789][0-9]{7,8}"
                         required
+                        title="010으로 시작하는 10~11자리 숫자를 입력해주세요."
                         type="tel"
                         value={receiverPhone}
                         placeholder="01012345678"
                         onChange={(event) =>
-                          handleOrderFormChange('receiverPhone', event.target.value)
+                          handleOrderFormChange(
+                            'receiverPhone',
+                            normalizeDigits(event.target.value, PHONE_MAX_LENGTH),
+                          )
                         }
                       />
+                      {orderFieldErrors.receiverPhone && (
+                        <small className="cart-field-message">
+                          {orderFieldErrors.receiverPhone}
+                        </small>
+                      )}
                     </label>
 
                     <label>
                       <span>우편번호</span>
                       <input
+                        aria-invalid={Boolean(orderFieldErrors.postalCode)}
                         autoComplete="postal-code"
+                        inputMode="numeric"
+                        maxLength={POSTAL_CODE_LENGTH}
+                        pattern="[0-9]{5}"
                         required
+                        title="5자리 숫자 우편번호를 입력해주세요."
                         type="text"
                         value={orderForm.postalCode}
                         placeholder="06236"
                         onChange={(event) =>
-                          handleOrderFormChange('postalCode', event.target.value)
+                          handleOrderFormChange(
+                            'postalCode',
+                            normalizeDigits(event.target.value, POSTAL_CODE_LENGTH),
+                          )
                         }
                       />
+                      {orderFieldErrors.postalCode && (
+                        <small className="cart-field-message">
+                          {orderFieldErrors.postalCode}
+                        </small>
+                      )}
                     </label>
 
                     <label>
                       <span>주소</span>
                       <input
+                        aria-invalid={Boolean(orderFieldErrors.address)}
                         autoComplete="street-address"
                         required
                         type="text"
@@ -367,11 +432,17 @@ export function CartPage() {
                           handleOrderFormChange('address', event.target.value)
                         }
                       />
+                      {orderFieldErrors.address && (
+                        <small className="cart-field-message">
+                          {orderFieldErrors.address}
+                        </small>
+                      )}
                     </label>
 
                     <label>
                       <span>상세 주소</span>
                       <input
+                        aria-invalid={Boolean(orderFieldErrors.addressDetail)}
                         type="text"
                         value={orderForm.addressDetail}
                         placeholder="선택 입력"
@@ -379,11 +450,17 @@ export function CartPage() {
                           handleOrderFormChange('addressDetail', event.target.value)
                         }
                       />
+                      {orderFieldErrors.addressDetail && (
+                        <small className="cart-field-message">
+                          {orderFieldErrors.addressDetail}
+                        </small>
+                      )}
                     </label>
 
                     <label>
                       <span>배송 요청사항</span>
                       <textarea
+                        aria-invalid={Boolean(orderFieldErrors.deliveryMessage)}
                         rows={3}
                         value={orderForm.deliveryMessage}
                         placeholder="선택 입력"
@@ -391,6 +468,11 @@ export function CartPage() {
                           handleOrderFormChange('deliveryMessage', event.target.value)
                         }
                       />
+                      {orderFieldErrors.deliveryMessage && (
+                        <small className="cart-field-message">
+                          {orderFieldErrors.deliveryMessage}
+                        </small>
+                      )}
                     </label>
                   </div>
 
@@ -553,4 +635,34 @@ function readApiMessage(error: unknown, fallbackMessage: string) {
   }
 
   return fallbackMessage
+}
+
+function normalizeDigits(value: string, maxLength: number) {
+  return value.replace(/\D/g, '').slice(0, maxLength)
+}
+
+function readOrderFieldErrors(error: unknown) {
+  if (!(error instanceof ApiError)) {
+    return {}
+  }
+
+  return error.fieldErrors.reduce<OrderFieldErrors>((errors, fieldError) => {
+    const fieldName = readOrderFormField(fieldError.field)
+
+    if (fieldName && !errors[fieldName]) {
+      errors[fieldName] = fieldError.message
+    }
+
+    return errors
+  }, {})
+}
+
+function readOrderFormField(field: string) {
+  const fieldName = field.split('.').at(-1) ?? field
+
+  if (!ORDER_FORM_FIELD_SET.has(fieldName)) {
+    return null
+  }
+
+  return fieldName as OrderFormField
 }

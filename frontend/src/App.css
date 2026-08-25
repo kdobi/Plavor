@@ -1032,9 +1032,21 @@
   border-color: #111111;
 }
 
+.cart-order-fields input[aria-invalid='true'],
+.cart-order-fields textarea[aria-invalid='true'] {
+  border-color: #d93333;
+}
+
 .cart-order-fields input::placeholder,
 .cart-order-fields textarea::placeholder {
   color: #a0a0a0;
+}
+
+.cart-field-message {
+  color: #d93333;
+  font-size: 12px;
+  font-weight: 720;
+  line-height: 1.35;
 }
 
 .cart-summary dl div {

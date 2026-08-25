@@ -11,6 +11,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -146,6 +147,52 @@ class OrderControllerTests {
 								"""))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.code").value("COMMON_INVALID_INPUT"));
+	}
+
+	@Test
+	void createOrderRejectsInvalidReceiverPhone() throws Exception {
+		String accessToken = signupAndLogin("order-phone@example.com");
+		Long itemId = addItem(accessToken, 1, 1);
+
+		mockMvc.perform(post("/api/orders")
+						.header("Authorization", "Bearer " + accessToken)
+						.contentType("application/json")
+						.content("""
+								{
+								  "cartItemIds": [%d],
+								  "receiverName": "김동빈",
+								  "receiverPhone": "010-1234-5678",
+								  "postalCode": "06236",
+								  "address": "서울특별시 강남구 테헤란로 123"
+								}
+								""".formatted(itemId)))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("COMMON_INVALID_INPUT"))
+				.andExpect(jsonPath("$.errors[*].field", hasItem("receiverPhone")))
+				.andExpect(jsonPath("$.errors[*].message", hasItem("휴대폰 번호 형식이 올바르지 않습니다.")));
+	}
+
+	@Test
+	void createOrderRejectsInvalidPostalCode() throws Exception {
+		String accessToken = signupAndLogin("order-postal@example.com");
+		Long itemId = addItem(accessToken, 1, 1);
+
+		mockMvc.perform(post("/api/orders")
+						.header("Authorization", "Bearer " + accessToken)
+						.contentType("application/json")
+						.content("""
+								{
+								  "cartItemIds": [%d],
+								  "receiverName": "김동빈",
+								  "receiverPhone": "01012345678",
+								  "postalCode": "1234",
+								  "address": "서울특별시 강남구 테헤란로 123"
+								}
+								""".formatted(itemId)))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("COMMON_INVALID_INPUT"))
+				.andExpect(jsonPath("$.errors[*].field", hasItem("postalCode")))
+				.andExpect(jsonPath("$.errors[*].message", hasItem("우편번호는 5자리 숫자여야 합니다.")));
 	}
 
 	@Test
