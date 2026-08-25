@@ -9,6 +9,10 @@ import { ApiError } from '../api/auth'
 import { fetchCategories } from '../api/catalog'
 import { useAuth } from '../auth/auth-state'
 import { AdminAccessGate } from '../components/AdminAccessGate'
+import {
+  AdminBreadcrumb,
+  AdminNavigation,
+} from '../components/AdminNavigation'
 import { SiteHeader } from '../components/SiteHeader'
 import type { AdminProduct } from '../types/admin'
 import type { Category, ProductStatus } from '../types/catalog'
@@ -179,13 +183,17 @@ export function AdminProductsPage() {
         <AdminAccessGate>
           <section className="admin-heading">
             <div>
-              <p className="eyebrow">Admin Catalog</p>
-              <h1>상품 관리</h1>
+              <AdminBreadcrumb current="상품 목록" />
+              <h1>상품 목록</h1>
             </div>
-            <Link className="admin-primary-link" to="/admin/products/new">
-              상품 등록
-            </Link>
+            <div className="admin-heading-actions">
+              <Link className="admin-primary-link" to="/admin/products/new">
+                + 새 상품 등록
+              </Link>
+            </div>
           </section>
+
+          <AdminNavigation active="products" />
 
           <section className="admin-toolbar" aria-label="상품 검색 조건">
             <form className="admin-search-form" onSubmit={handleSearch}>

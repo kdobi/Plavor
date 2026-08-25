@@ -1,12 +1,16 @@
 import { ApiError } from './auth'
 import type { ApiErrorResponse } from '../types/auth'
 import type {
+  AdminOrder,
+  AdminOrderPage,
+  AdminOrderStatusUpdateRequest,
   AdminProduct,
   AdminProductPage,
   AdminProductRequest,
   AdminProductStatusUpdateRequest,
 } from '../types/admin'
 import type { ProductStatus } from '../types/catalog'
+import type { OrderStatus } from '../types/order'
 
 export async function fetchAdminProducts(
   accessToken: string,
@@ -105,6 +109,67 @@ export async function updateAdminProductStatus(
   })
 
   return parseResponse<AdminProduct>(response)
+}
+
+export async function fetchAdminOrders(
+  accessToken: string,
+  params: {
+    status: OrderStatus | null
+    keyword: string
+    page?: number
+    size?: number
+  },
+  signal?: AbortSignal,
+) {
+  const searchParams = new URLSearchParams({
+    page: String(params.page ?? 0),
+    size: String(params.size ?? 20),
+  })
+
+  if (params.status !== null) {
+    searchParams.set('status', params.status)
+  }
+
+  if (params.keyword.trim()) {
+    searchParams.set('keyword', params.keyword.trim())
+  }
+
+  const response = await fetch(`/api/admin/orders?${searchParams.toString()}`, {
+    headers: authHeaders(accessToken),
+    signal,
+  })
+
+  return parseResponse<AdminOrderPage>(response)
+}
+
+export async function fetchAdminOrder(
+  accessToken: string,
+  orderId: string,
+  signal?: AbortSignal,
+) {
+  const response = await fetch(`/api/admin/orders/${orderId}`, {
+    headers: authHeaders(accessToken),
+    signal,
+  })
+
+  return parseResponse<AdminOrder>(response)
+}
+
+export async function updateAdminOrderStatus(
+  accessToken: string,
+  orderId: number,
+  request: AdminOrderStatusUpdateRequest,
+) {
+  const response = await fetch(`/api/admin/orders/${orderId}/status`, {
+    method: 'PATCH',
+    headers: {
+      ...authHeaders(accessToken),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  })
+
+  return parseResponse<AdminOrder>(response)
 }
 
 function authHeaders(accessToken: string) {

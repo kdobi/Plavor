@@ -1,4 +1,10 @@
-export type OrderStatus = 'CREATED' | 'PAID' | 'CANCELED'
+export type OrderStatus =
+  | 'CREATED'
+  | 'PAID'
+  | 'PREPARING'
+  | 'SHIPPED'
+  | 'DELIVERED'
+  | 'CANCELED'
 
 export type OrderItem = {
   id: number

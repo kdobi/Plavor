@@ -123,6 +123,10 @@ public class Order {
 		return status;
 	}
 
+	public void updateStatus(OrderStatus status) {
+		this.status = status;
+	}
+
 	public long getTotalAmount() {
 		return totalAmount;
 	}
