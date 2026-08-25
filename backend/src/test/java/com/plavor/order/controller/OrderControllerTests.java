@@ -2,6 +2,11 @@ package com.plavor.order.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.plavor.catalog.domain.Product;
+import com.plavor.catalog.domain.ProductStatus;
+import com.plavor.catalog.repository.ProductRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -11,6 +16,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.startsWith;
@@ -29,6 +35,12 @@ class OrderControllerTests {
 
 	@Autowired
 	private MockMvc mockMvc;
+
+	@Autowired
+	private ProductRepository productRepository;
+
+	@PersistenceContext
+	private EntityManager entityManager;
 
 	@Test
 	void createOrderRequiresLogin() throws Exception {
@@ -91,12 +103,75 @@ class OrderControllerTests {
 				.andExpect(jsonPath("$.items[1].quantity").value(1))
 				.andExpect(jsonPath("$.items[1].totalPrice").value(69000));
 
+		entityManager.flush();
+		entityManager.clear();
+
+		assertThat(productRepository.findById(1L).orElseThrow().getStockQuantity()).isEqualTo(118);
+		assertThat(productRepository.findById(2L).orElseThrow().getStockQuantity()).isEqualTo(44);
+
 		mockMvc.perform(get("/api/cart")
 						.header("Authorization", "Bearer " + accessToken))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.items", hasSize(0)))
 				.andExpect(jsonPath("$.totalQuantity").value(0))
 				.andExpect(jsonPath("$.totalAmount").value(0));
+	}
+
+	@Test
+	void createOrderRejectsWhenStockDropsBelowCartQuantity() throws Exception {
+		String accessToken = signupAndLogin("order-stock-shortage@example.com");
+		Long itemId = addItem(accessToken, 1, 2);
+		Product product = productRepository.findById(1L).orElseThrow();
+		product.decreaseStock(product.getStockQuantity() - 1);
+
+		entityManager.flush();
+		entityManager.clear();
+
+		mockMvc.perform(post("/api/orders")
+						.header("Authorization", "Bearer " + accessToken)
+						.contentType("application/json")
+						.content("""
+								{
+								  "cartItemIds": [%d],
+								  "receiverName": "김동빈",
+								  "receiverPhone": "01012345678",
+								  "postalCode": "06236",
+								  "address": "서울특별시 강남구 테헤란로 123"
+								}
+								""".formatted(itemId)))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("ORDER_QUANTITY_EXCEEDS_STOCK"))
+				.andExpect(jsonPath("$.message").value("주문 수량이 상품 재고보다 많습니다."));
+	}
+
+	@Test
+	void createOrderMarksProductSoldOutWhenStockBecomesZero() throws Exception {
+		String accessToken = signupAndLogin("order-stock-sold-out@example.com");
+		Product product = productRepository.findById(1L).orElseThrow();
+		int stockQuantity = product.getStockQuantity();
+		Long itemId = addItem(accessToken, product.getId(), stockQuantity);
+
+		mockMvc.perform(post("/api/orders")
+						.header("Authorization", "Bearer " + accessToken)
+						.contentType("application/json")
+						.content("""
+								{
+								  "cartItemIds": [%d],
+								  "receiverName": "김동빈",
+								  "receiverPhone": "01012345678",
+								  "postalCode": "06236",
+								  "address": "서울특별시 강남구 테헤란로 123"
+								}
+								""".formatted(itemId)))
+				.andExpect(status().isCreated());
+
+		entityManager.flush();
+		entityManager.clear();
+
+		Product updatedProduct = productRepository.findById(1L).orElseThrow();
+
+		assertThat(updatedProduct.getStockQuantity()).isZero();
+		assertThat(updatedProduct.getStatus()).isEqualTo(ProductStatus.SOLD_OUT);
 	}
 
 	@Test

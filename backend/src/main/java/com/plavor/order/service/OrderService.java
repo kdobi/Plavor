@@ -4,6 +4,7 @@ import com.plavor.cart.domain.CartItem;
 import com.plavor.cart.repository.CartItemRepository;
 import com.plavor.catalog.domain.Product;
 import com.plavor.catalog.domain.ProductStatus;
+import com.plavor.catalog.repository.ProductRepository;
 import com.plavor.global.error.BusinessException;
 import com.plavor.global.error.ErrorCode;
 import com.plavor.member.domain.Member;
@@ -21,6 +22,9 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.UUID;
 
 @Service
@@ -32,15 +36,18 @@ public class OrderService {
 
 	private final OrderRepository orderRepository;
 	private final CartItemRepository cartItemRepository;
+	private final ProductRepository productRepository;
 	private final MemberRepository memberRepository;
 
 	public OrderService(
 			OrderRepository orderRepository,
 			CartItemRepository cartItemRepository,
+			ProductRepository productRepository,
 			MemberRepository memberRepository
 	) {
 		this.orderRepository = orderRepository;
 		this.cartItemRepository = cartItemRepository;
+		this.productRepository = productRepository;
 		this.memberRepository = memberRepository;
 	}
 
@@ -55,6 +62,8 @@ public class OrderService {
 		if (cartItems.size() != cartItemIds.size()) {
 			throw new BusinessException(ErrorCode.ORDER_CART_ITEM_NOT_FOUND);
 		}
+
+		Map<Long, Product> productsById = findProductsForStockUpdate(cartItems);
 
 		Member member = memberRepository.findById(memberId)
 				.orElseThrow(() -> new BusinessException(ErrorCode.COMMON_NOT_FOUND, "회원을 찾을 수 없습니다."));
@@ -71,7 +80,7 @@ public class OrderService {
 		);
 
 		for (CartItem cartItem : cartItems) {
-			Product product = cartItem.getProduct();
+			Product product = productsById.get(cartItem.getProduct().getId());
 
 			validateOrderableProduct(product, cartItem.getQuantity());
 			order.addItem(product, cartItem.getQuantity());
@@ -98,6 +107,22 @@ public class OrderService {
 				.orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
 
 		return OrderResponse.from(order);
+	}
+
+	private Map<Long, Product> findProductsForStockUpdate(List<CartItem> cartItems) {
+		List<Long> productIds = cartItems.stream()
+				.map(cartItem -> cartItem.getProduct().getId())
+				.distinct()
+				.sorted()
+				.toList();
+		List<Product> products = productRepository.findAllByIdInWithCategoryForUpdate(productIds);
+
+		if (products.size() != productIds.size()) {
+			throw new BusinessException(ErrorCode.ORDER_PRODUCT_NOT_AVAILABLE);
+		}
+
+		return products.stream()
+				.collect(Collectors.toMap(Product::getId, Function.identity()));
 	}
 
 	private void validateOrderableProduct(Product product, int quantity) {

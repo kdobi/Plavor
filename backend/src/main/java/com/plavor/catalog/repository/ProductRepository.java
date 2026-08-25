@@ -2,9 +2,11 @@ package com.plavor.catalog.repository;
 
 import com.plavor.catalog.domain.Product;
 import com.plavor.catalog.domain.ProductStatus;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -141,6 +143,16 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 			@Param("id") Long id,
 			@Param("statuses") Collection<ProductStatus> statuses
 	);
+
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("""
+			select p
+			from Product p
+			join fetch p.category
+			where p.id in :ids
+			order by p.id asc
+			""")
+	List<Product> findAllByIdInWithCategoryForUpdate(@Param("ids") Collection<Long> ids);
 
 	@Query(
 			value = """
