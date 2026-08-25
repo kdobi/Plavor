@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/auth'
 import { deleteCartItem, fetchCart, updateCartItem } from '../api/cart'
 import { createOrder } from '../api/order'
@@ -28,6 +28,7 @@ const ORDER_FORM_FIELD_SET = new Set<string>(ORDER_FORM_FIELDS)
 
 export function CartPage() {
   const location = useLocation()
+  const navigate = useNavigate()
   const { accessToken, isInitializing, user } = useAuth()
   const [cart, setCart] = useState<Cart | null>(null)
   const [selectedItemIds, setSelectedItemIds] = useState<number[]>([])
@@ -242,6 +243,9 @@ export function CartPage() {
       setCart(data)
       setSelectedItemIds(data.items.map((item) => item.id))
       setSuccessMessage(`주문이 생성되었습니다. 주문번호 ${order.orderNumber}`)
+      navigate(`/orders/complete/${order.id}`, {
+        state: { orderNumber: order.orderNumber },
+      })
     } catch (error) {
       const nextFieldErrors = readOrderFieldErrors(error)
 

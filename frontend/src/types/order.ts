@@ -4,6 +4,7 @@ export type OrderItem = {
   id: number
   productId: number
   productName: string
+  thumbnailImageUrl: string | null
   unitPrice: number
   quantity: number
   totalPrice: number

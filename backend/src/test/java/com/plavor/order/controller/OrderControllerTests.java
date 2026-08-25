@@ -130,6 +130,60 @@ class OrderControllerTests {
 	}
 
 	@Test
+	void getOrdersRequiresLogin() throws Exception {
+		mockMvc.perform(get("/api/orders"))
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.code").value("AUTH_UNAUTHORIZED"));
+	}
+
+	@Test
+	void getOrdersReturnsOnlyCurrentMembersOrders() throws Exception {
+		String accessToken = signupAndLogin("order-list@example.com");
+		JsonNode firstOrder = createOrderFromProduct(accessToken, 1, 1);
+		JsonNode secondOrder = createOrderFromProduct(accessToken, 2, 1);
+
+		String otherToken = signupAndLogin("order-list-other@example.com");
+		createOrderFromProduct(otherToken, 1, 1);
+
+		mockMvc.perform(get("/api/orders")
+						.header("Authorization", "Bearer " + accessToken))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$", hasSize(2)))
+				.andExpect(jsonPath("$[*].orderNumber", hasItem(firstOrder.get("orderNumber").asText())))
+				.andExpect(jsonPath("$[*].orderNumber", hasItem(secondOrder.get("orderNumber").asText())));
+	}
+
+	@Test
+	void getOrderReturnsCurrentMembersOrder() throws Exception {
+		String accessToken = signupAndLogin("order-detail@example.com");
+		JsonNode order = createOrderFromProduct(accessToken, 1, 2);
+
+		mockMvc.perform(get("/api/orders/{orderId}", order.get("id").asLong())
+						.header("Authorization", "Bearer " + accessToken))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.id").value(order.get("id").asLong()))
+				.andExpect(jsonPath("$.orderNumber").value(order.get("orderNumber").asText()))
+				.andExpect(jsonPath("$.totalAmount").value(58000))
+				.andExpect(jsonPath("$.items", hasSize(1)))
+				.andExpect(jsonPath("$.items[0].productName").value("Minimal Cotton T-Shirt"))
+				.andExpect(jsonPath("$.items[0].quantity").value(2));
+	}
+
+	@Test
+	void getOrderRejectsOtherMembersOrder() throws Exception {
+		String ownerToken = signupAndLogin("order-detail-owner@example.com");
+		JsonNode order = createOrderFromProduct(ownerToken, 1, 1);
+
+		String otherToken = signupAndLogin("order-detail-other@example.com");
+
+		mockMvc.perform(get("/api/orders/{orderId}", order.get("id").asLong())
+						.header("Authorization", "Bearer " + otherToken))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.code").value("ORDER_NOT_FOUND"))
+				.andExpect(jsonPath("$.message").value("주문을 찾을 수 없습니다."));
+	}
+
+	@Test
 	void createOrderRejectsEmptySelection() throws Exception {
 		String accessToken = signupAndLogin("order-empty@example.com");
 
@@ -239,6 +293,27 @@ class OrderControllerTests {
 		}
 
 		throw new IllegalStateException("장바구니 상품 ID를 찾을 수 없습니다.");
+	}
+
+	private JsonNode createOrderFromProduct(String accessToken, long productId, int quantity) throws Exception {
+		Long itemId = addItem(accessToken, productId, quantity);
+
+		MvcResult result = mockMvc.perform(post("/api/orders")
+						.header("Authorization", "Bearer " + accessToken)
+						.contentType("application/json")
+						.content("""
+								{
+								  "cartItemIds": [%d],
+								  "receiverName": "김동빈",
+								  "receiverPhone": "01012345678",
+								  "postalCode": "06236",
+								  "address": "서울특별시 강남구 테헤란로 123"
+								}
+								""".formatted(itemId)))
+				.andExpect(status().isCreated())
+				.andReturn();
+
+		return objectMapper.readTree(result.getResponse().getContentAsString());
 	}
 
 	private String signupAndLogin(String email) throws Exception {

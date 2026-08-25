@@ -85,6 +85,21 @@ public class OrderService {
 		return OrderResponse.from(savedOrder);
 	}
 
+	@Transactional(readOnly = true)
+	public List<OrderResponse> getOrders(Long memberId) {
+		return orderRepository.findAllByMemberIdWithItems(memberId).stream()
+				.map(OrderResponse::from)
+				.toList();
+	}
+
+	@Transactional(readOnly = true)
+	public OrderResponse getOrder(Long memberId, Long orderId) {
+		Order order = orderRepository.findByIdAndMemberIdWithItems(orderId, memberId)
+				.orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+
+		return OrderResponse.from(order);
+	}
+
 	private void validateOrderableProduct(Product product, int quantity) {
 		if (product.getStatus() != ProductStatus.ACTIVE || !product.getCategory().isActive()) {
 			throw new BusinessException(ErrorCode.ORDER_PRODUCT_NOT_AVAILABLE);
