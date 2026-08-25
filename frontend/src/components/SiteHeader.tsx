@@ -20,6 +20,7 @@ export function SiteHeader() {
         ) : user ? (
           <>
             <Link to="/members/me">{user.name}</Link>
+            <Link to="/orders">Orders</Link>
             <button className="header-text-button" type="button" onClick={logout}>
               Logout
             </button>

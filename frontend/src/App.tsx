@@ -5,6 +5,9 @@ import { CartPage } from './pages/CartPage'
 import { HomePage } from './pages/HomePage'
 import { KakaoCallbackPage } from './pages/KakaoCallbackPage'
 import { LoginPage } from './pages/LoginPage'
+import { OrderCompletePage } from './pages/OrderCompletePage'
+import { OrderDetailPage } from './pages/OrderDetailPage'
+import { OrdersPage } from './pages/OrdersPage'
 import { ProductDetailPage } from './pages/ProductDetailPage'
 import { SignupPage } from './pages/SignupPage'
 
@@ -19,6 +22,9 @@ function App() {
           <Route path="/auth/kakao/callback" element={<KakaoCallbackPage />} />
           <Route path="/products/:productId" element={<ProductDetailPage />} />
           <Route path="/cart" element={<CartPage />} />
+          <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/orders/complete/:orderId" element={<OrderCompletePage />} />
+          <Route path="/orders/:orderId" element={<OrderDetailPage />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
