@@ -1,0 +1,15 @@
+{$PLAVOR_DOMAIN} {
+	handle /api/* {
+		reverse_proxy backend:8080
+	}
+
+	handle /actuator/* {
+		reverse_proxy backend:8080
+	}
+
+	handle {
+		root * /srv/plavor/frontend/dist
+		try_files {path} /index.html
+		file_server
+	}
+}
