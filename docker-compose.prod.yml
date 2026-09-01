@@ -36,7 +36,10 @@ services:
       - "${BACKEND_PORT:-127.0.0.1:8080}:8080"
 
   caddy:
-    image: caddy:2-alpine
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    image: plavor-web
     container_name: plavor-caddy
     restart: unless-stopped
     depends_on:
@@ -48,8 +51,6 @@ services:
       - "443:443"
       - "443:443/udp"
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - ./frontend/dist:/srv/plavor/frontend/dist:ro
       - plavor-caddy-data:/data
       - plavor-caddy-config:/config
 
