@@ -36,6 +36,13 @@ export type AdminProductRequest = {
   images: AdminProductImageRequest[]
 }
 
+export type AdminImageUploadResponse = {
+  imageUrl: string
+  originalFilename: string | null
+  contentType: string
+  size: number
+}
+
 export type AdminProductStatusUpdateRequest = {
   status: ProductStatus
 }

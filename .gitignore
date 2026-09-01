@@ -8,6 +8,8 @@
 backend/build/
 backend/target/
 backend/.gradle/
+backend/uploads/
+uploads/
 
 # Node / React
 frontend/node_modules/
@@ -17,4 +19,3 @@ frontend/build/
 # Environment files
 .env
 .env.*
-

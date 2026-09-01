@@ -32,8 +32,11 @@ services:
       KAKAO_REST_API_KEY: ${KAKAO_REST_API_KEY:?KAKAO_REST_API_KEY is required}
       KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET:?KAKAO_CLIENT_SECRET is required}
       KAKAO_REDIRECT_URI: ${KAKAO_REDIRECT_URI:?KAKAO_REDIRECT_URI is required}
+      UPLOAD_IMAGE_DIRECTORY: ${UPLOAD_IMAGE_DIRECTORY:-/app/uploads}
     ports:
       - "${BACKEND_PORT:-127.0.0.1:8080}:8080"
+    volumes:
+      - plavor-uploads:/app/uploads
 
   caddy:
     build:
@@ -58,3 +61,4 @@ volumes:
   plavor-prod-postgres-data:
   plavor-caddy-data:
   plavor-caddy-config:
+  plavor-uploads:
