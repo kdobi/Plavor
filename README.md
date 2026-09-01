@@ -7,7 +7,7 @@
 
 ## Home Server Deployment
 
-The production compose file runs PostgreSQL, the Spring Boot backend, and Caddy in the same Docker network. Caddy serves the built frontend and proxies API traffic to the backend.
+The production compose file runs PostgreSQL, the Spring Boot backend, and a Caddy web image in the same Docker network. The web image builds the React frontend and serves the compiled files while proxying API traffic to the backend.
 
 1. Create an environment file on the server:
 
@@ -17,14 +17,7 @@ The production compose file runs PostgreSQL, the Spring Boot backend, and Caddy 
 
 2. Edit `.env` and set real values for the database password, JWT secret, Kakao credentials, and production domain.
 
-3. Build the frontend on the server:
-
-   ```bash
-   npm --prefix frontend install
-   npm --prefix frontend run build
-   ```
-
-4. Stop any old standalone Caddy container that was created outside this compose file:
+3. Stop any old standalone Caddy container that was created outside this compose file:
 
    ```bash
    docker ps
@@ -32,13 +25,13 @@ The production compose file runs PostgreSQL, the Spring Boot backend, and Caddy 
    docker rm caddy
    ```
 
-5. Start the production stack:
+4. Start the production stack:
 
    ```bash
    docker compose --env-file .env -f docker-compose.prod.yml up -d --build
    ```
 
-6. Check the deployment:
+5. Check the deployment:
 
    ```bash
    curl http://localhost:8080/actuator/health
@@ -47,3 +40,27 @@ The production compose file runs PostgreSQL, the Spring Boot backend, and Caddy 
    ```
 
 Do not use `docker compose down -v` after real production data exists. The `-v` option deletes the PostgreSQL volume.
+
+## Automatic Production Deployment
+
+Production deployment is handled by `.github/workflows/deploy-prod.yml`.
+
+The workflow runs after the `CI` workflow succeeds on `main`. It can also be started manually from the `main` branch with `workflow_dispatch`.
+
+The home server needs a GitHub Actions self-hosted runner with the `plavor-prod` label. The runner host must have Docker, the Docker Compose plugin, and access to `/home/kdobi/Plavor/.env`.
+
+The deployment workflow checks out the release source in the GitHub Actions runner workspace, reads the production environment values from `/home/kdobi/Plavor/.env`, then runs:
+
+```bash
+docker compose --project-name plavor --env-file /home/kdobi/Plavor/.env -f docker-compose.prod.yml config
+docker compose --project-name plavor --env-file /home/kdobi/Plavor/.env -f docker-compose.prod.yml build
+docker compose --project-name plavor --env-file /home/kdobi/Plavor/.env -f docker-compose.prod.yml up -d --remove-orphans
+```
+
+The fixed Compose project name keeps the Docker network and named volumes stable even though GitHub Actions runs from its own workspace.
+
+Recommended production flow:
+
+```text
+feat/* -> develop -> main -> CI success -> production deploy
+```
