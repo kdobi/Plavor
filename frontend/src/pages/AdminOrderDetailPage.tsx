@@ -187,18 +187,23 @@ export function AdminOrderDetailPage() {
                 <label className="admin-field">
                   <span>주문 상태</span>
                   <select
-                    disabled={isUpdating}
+                    disabled={isUpdating || order.availableNextStatuses.length === 0}
                     value={order.status}
                     onChange={(event) =>
                       handleStatusChange(event.target.value as OrderStatus)
                     }
                   >
-                    {ORDER_STATUS_OPTIONS.map((status) => (
+                    {getSelectableStatusOptions(order).map((status) => (
                       <option key={status.value} value={status.value}>
                         {status.label}
                       </option>
                     ))}
                   </select>
+                  <small className="admin-field-hint">
+                    {order.availableNextStatuses.length > 0
+                      ? `${formatOrderStatus(order.status)}에서 다음 상태로 변경할 수 있습니다.`
+                      : '이미 최종 상태라 더 이상 변경할 수 없습니다.'}
+                  </small>
                 </label>
                 {message && <p className="admin-message">{message}</p>}
 
@@ -263,4 +268,15 @@ function readApiMessage(error: unknown, fallbackMessage: string) {
   }
 
   return fallbackMessage
+}
+
+function getSelectableStatusOptions(order: AdminOrder) {
+  const selectableStatuses = new Set<OrderStatus>([
+    order.status,
+    ...order.availableNextStatuses,
+  ])
+
+  return ORDER_STATUS_OPTIONS.filter((status) =>
+    selectableStatuses.has(status.value),
+  )
 }

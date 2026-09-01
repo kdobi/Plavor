@@ -19,6 +19,7 @@ import { currencyFormatter, formatImageUrl } from '../utils/catalog'
 import {
   formatOrderDate,
   formatOrderTitle,
+  formatOrderStatus,
   sumOrderQuantity,
 } from '../utils/order'
 
@@ -223,23 +224,34 @@ export function AdminOrdersPage() {
                       </div>
 
                       <div className="admin-order-actions">
-                        <select
-                          className={`admin-status-select ${order.status.toLowerCase()}`}
-                          disabled={updatingOrderId === order.id}
-                          value={order.status}
-                          onChange={(event) =>
-                            handleOrderStatusChange(
-                              order,
-                              event.target.value as OrderStatus,
-                            )
-                          }
-                        >
-                          {ORDER_STATUS_OPTIONS.map((status) => (
-                            <option key={status.value} value={status.value}>
-                              {status.label}
-                            </option>
-                          ))}
-                        </select>
+                        <label className="admin-status-control">
+                          <span>주문 상태</span>
+                          <select
+                            className={`admin-status-select ${order.status.toLowerCase()}`}
+                            disabled={
+                              updatingOrderId === order.id ||
+                              order.availableNextStatuses.length === 0
+                            }
+                            value={order.status}
+                            onChange={(event) =>
+                              handleOrderStatusChange(
+                                order,
+                                event.target.value as OrderStatus,
+                              )
+                            }
+                          >
+                            {getSelectableStatusOptions(order).map((status) => (
+                              <option key={status.value} value={status.value}>
+                                {status.label}
+                              </option>
+                            ))}
+                          </select>
+                          <small className="admin-field-hint">
+                            {order.availableNextStatuses.length > 0
+                              ? `${formatOrderStatus(order.status)}에서 변경 가능`
+                              : '최종 상태'}
+                          </small>
+                        </label>
                         <strong>{currencyFormatter.format(order.totalAmount)}원</strong>
                         <span>총 {sumOrderQuantity(order)}개</span>
                         <Link to={`/admin/orders/${order.id}`}>상세 보기</Link>
@@ -288,4 +300,15 @@ function readApiMessage(error: unknown, fallbackMessage: string) {
   }
 
   return fallbackMessage
+}
+
+function getSelectableStatusOptions(order: AdminOrder) {
+  const selectableStatuses = new Set<OrderStatus>([
+    order.status,
+    ...order.availableNextStatuses,
+  ])
+
+  return ORDER_STATUS_OPTIONS.filter((status) =>
+    selectableStatuses.has(status.value),
+  )
 }

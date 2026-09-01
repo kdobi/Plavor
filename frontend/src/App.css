@@ -2510,6 +2510,39 @@
   cursor: pointer;
 }
 
+.admin-status-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.admin-status-control {
+  display: grid;
+  justify-items: end;
+  gap: 5px;
+  min-width: 0;
+}
+
+.admin-status-control > span {
+  color: #777777;
+  font-size: 12px;
+  font-weight: 720;
+}
+
+.admin-status-control .admin-status-select {
+  width: 100%;
+  min-width: 122px;
+}
+
+.admin-field-hint,
+.admin-field .admin-field-hint,
+.admin-status-control .admin-field-hint {
+  margin: 0;
+  color: #888888;
+  font-size: 12px;
+  font-weight: 690;
+  line-height: 1.45;
+}
+
 .admin-status-select.active {
   border-color: #dcefe4;
   color: #167347;
@@ -3038,6 +3071,10 @@
   }
 
   .admin-order-actions {
+    justify-items: start;
+  }
+
+  .admin-status-control {
     justify-items: start;
   }
 

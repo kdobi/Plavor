@@ -58,6 +58,7 @@ export type AdminOrder = {
   deliveryMessage: string | null
   orderedAt: string
   updatedAt: string
+  availableNextStatuses: OrderStatus[]
   items: OrderItem[]
 }
 
