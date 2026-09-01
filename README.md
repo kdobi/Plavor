@@ -9,6 +9,8 @@
 
 The production compose file runs PostgreSQL, the Spring Boot backend, and a Caddy web image in the same Docker network. The web image builds the React frontend and serves the compiled files while proxying API traffic to the backend.
 
+Uploaded product images are stored in the `plavor-uploads` Docker volume and exposed through the backend under `/uploads/**`. The database stores only the image URL, not the binary image file.
+
 1. Create an environment file on the server:
 
    ```bash
@@ -39,7 +41,7 @@ The production compose file runs PostgreSQL, the Spring Boot backend, and a Cadd
    curl https://$PLAVOR_DOMAIN/api/products
    ```
 
-Do not use `docker compose down -v` after real production data exists. The `-v` option deletes the PostgreSQL volume.
+Do not use `docker compose down -v` after real production data exists. The `-v` option deletes named volumes, including PostgreSQL data and uploaded product images.
 
 ## Automatic Production Deployment
 

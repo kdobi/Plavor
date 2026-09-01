@@ -30,6 +30,7 @@ public class SecurityConfig {
 				)
 				.authorizeHttpRequests(authorize -> authorize
 						.requestMatchers(HttpMethod.GET, "/api/products", "/api/products/**", "/api/categories").permitAll()
+						.requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/auth/kakao/login-url").permitAll()
 						.requestMatchers(
 								HttpMethod.POST,

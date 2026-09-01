@@ -1,6 +1,10 @@
 spring:
   application:
     name: backend
+  servlet:
+    multipart:
+      max-file-size: ${UPLOAD_MAX_FILE_SIZE:5MB}
+      max-request-size: ${UPLOAD_MAX_REQUEST_SIZE:6MB}
 
 server:
   port: 8080
@@ -25,3 +29,7 @@ app:
     authorization-url: https://kauth.kakao.com/oauth/authorize
     token-url: https://kauth.kakao.com/oauth/token
     user-info-url: https://kapi.kakao.com/v2/user/me
+  upload:
+    image-directory: ${UPLOAD_IMAGE_DIRECTORY:./uploads}
+    public-url-prefix: /uploads
+    max-image-size-bytes: ${UPLOAD_MAX_IMAGE_SIZE_BYTES:5242880}

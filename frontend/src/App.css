@@ -2858,6 +2858,50 @@
   accent-color: #111111;
 }
 
+.admin-upload-field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  border: 1px dashed #d9d9d9;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fafafa;
+}
+
+.admin-upload-field span {
+  color: #444444;
+  font-size: 13px;
+  font-weight: 740;
+}
+
+.admin-upload-field input {
+  width: 100%;
+  min-width: 0;
+  color: #333333;
+  font: inherit;
+  font-size: 13px;
+}
+
+.admin-upload-field input::file-selector-button {
+  min-height: 34px;
+  margin-right: 10px;
+  border: 1px solid #dedede;
+  border-radius: 8px;
+  padding: 0 12px;
+  color: #111111;
+  background: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 760;
+  cursor: pointer;
+}
+
+.admin-upload-field input:disabled,
+.admin-upload-field input:disabled::file-selector-button {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
 .admin-danger-button {
   justify-self: start;
 }

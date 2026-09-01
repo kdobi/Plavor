@@ -1,6 +1,7 @@
 import { ApiError } from './auth'
 import type { ApiErrorResponse } from '../types/auth'
 import type {
+  AdminImageUploadResponse,
   AdminOrder,
   AdminOrderPage,
   AdminOrderStatusUpdateRequest,
@@ -109,6 +110,22 @@ export async function updateAdminProductStatus(
   })
 
   return parseResponse<AdminProduct>(response)
+}
+
+export async function uploadAdminProductImage(
+  accessToken: string,
+  file: File,
+) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await fetch('/api/admin/uploads/images', {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+    body: formData,
+  })
+
+  return parseResponse<AdminImageUploadResponse>(response)
 }
 
 export async function fetchAdminOrders(
