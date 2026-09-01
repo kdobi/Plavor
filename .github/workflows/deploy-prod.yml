@@ -1,0 +1,72 @@
+name: Production Deploy
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+env:
+  COMPOSE_PROJECT_NAME: plavor
+  PLAVOR_ENV_FILE: /home/kdobi/Plavor/.env
+
+jobs:
+  deploy:
+    name: Deploy To Home Server
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: [self-hosted, linux, x64, plavor-prod]
+    timeout-minutes: 30
+    environment: production
+
+    steps:
+      - name: Confirm manual deploy branch
+        if: ${{ github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main' }}
+        run: |
+          echo "Manual production deploys must be run from the main branch."
+          exit 1
+
+      - name: Checkout release source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Check runner prerequisites
+        run: |
+          command -v docker >/dev/null
+          command -v curl >/dev/null
+          docker compose version >/dev/null
+          test -f "$PLAVOR_ENV_FILE"
+
+      - name: Validate production compose
+        run: docker compose --project-name "$COMPOSE_PROJECT_NAME" --env-file "$PLAVOR_ENV_FILE" -f docker-compose.prod.yml config >/dev/null
+
+      - name: Build production images
+        run: docker compose --project-name "$COMPOSE_PROJECT_NAME" --env-file "$PLAVOR_ENV_FILE" -f docker-compose.prod.yml build
+
+      - name: Start production stack
+        run: docker compose --project-name "$COMPOSE_PROJECT_NAME" --env-file "$PLAVOR_ENV_FILE" -f docker-compose.prod.yml up -d --remove-orphans
+
+      - name: Check backend health
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8080/actuator/health; then
+              exit 0
+            fi
+
+            sleep 2
+          done
+
+          docker compose --project-name "$COMPOSE_PROJECT_NAME" --env-file "$PLAVOR_ENV_FILE" -f docker-compose.prod.yml ps
+          docker compose --project-name "$COMPOSE_PROJECT_NAME" --env-file "$PLAVOR_ENV_FILE" -f docker-compose.prod.yml logs --tail=120 backend
+          exit 1

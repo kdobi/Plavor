@@ -4,8 +4,9 @@ This project uses repository files for CI and maintenance automation, plus GitHu
 
 ## Files Added
 
-- `.github/workflows/ci.yml`: runs backend tests and frontend lint/build on pull requests and pushes to `main`.
-- `.github/workflows/codeql.yml`: runs CodeQL security analysis for Java and TypeScript.
+- `.github/workflows/ci.yml`: runs backend tests, frontend lint/build, and production Docker build checks on pull requests and pushes to `develop` and `main`.
+- `.github/workflows/codeql.yml`: runs CodeQL security analysis for Java and TypeScript on pull requests and pushes to `develop` and `main`.
+- `.github/workflows/deploy-prod.yml`: deploys production on the home server after `CI` succeeds on `main`.
 - `.github/dependabot.yml`: opens dependency update pull requests for GitHub Actions, Gradle, npm, and backend Docker image dependencies.
 - `.github/pull_request_template.md`: standard pull request checklist.
 - `.github/CODEOWNERS`: requests review from `@kdobi`.
@@ -25,10 +26,13 @@ Open the GitHub repository and configure these manually:
 8. Require status checks to pass before merge:
    - `Backend Test`
    - `Frontend Lint And Build`
+   - `Docker Compose Build`
    - `Analyze java-kotlin`
    - `Analyze javascript-typescript`
 9. Require conversation resolution before merge.
 10. Enable GitHub Copilot code review for pull requests if your plan and repository settings support it.
+11. Create a production environment if you want manual approval before production deployment.
+12. Install a self-hosted GitHub Actions runner on the home server and add the `plavor-prod` label.
 
 ## Suggested Merge Flow
 
@@ -38,4 +42,4 @@ Open the GitHub repository and configure these manually:
 4. Fix comments and failing checks.
 5. Merge only after all required checks pass.
 
-Automatic home-server deployment is intentionally not enabled yet. Add CD after the first real product API and frontend integration are stable.
+Production deployment runs only after changes reach `main` and the `CI` workflow succeeds.
