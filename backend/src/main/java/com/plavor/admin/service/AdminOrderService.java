@@ -60,8 +60,23 @@ public class AdminOrderService {
 
 	public AdminOrderResponse updateStatus(Long orderId, AdminOrderStatusUpdateRequest request) {
 		Order order = getOrderWithDetails(orderId);
+		OrderStatus nextStatus = request.status();
 
-		order.updateStatus(request.status());
+		if (order.getStatus() == nextStatus) {
+			return AdminOrderResponse.from(order);
+		}
+
+		if (!order.getStatus().canTransitionTo(nextStatus)) {
+			throw new BusinessException(
+					ErrorCode.ORDER_STATUS_TRANSITION_INVALID,
+					"%s 상태에서는 %s 상태로 변경할 수 없습니다.".formatted(
+							order.getStatus().getLabel(),
+							nextStatus.getLabel()
+					)
+			);
+		}
+
+		order.updateStatus(nextStatus);
 		orderRepository.flush();
 
 		return AdminOrderResponse.from(order);

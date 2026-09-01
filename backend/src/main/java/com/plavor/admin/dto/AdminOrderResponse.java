@@ -56,6 +56,9 @@ public record AdminOrderResponse(
 		@Schema(description = "주문 수정 시각")
 		LocalDateTime updatedAt,
 
+		@Schema(description = "변경 가능한 다음 주문 상태 목록")
+		List<OrderStatus> availableNextStatuses,
+
 		@Schema(description = "주문 상품 목록")
 		List<OrderItemResponse> items
 ) {
@@ -79,6 +82,7 @@ public record AdminOrderResponse(
 				order.getDeliveryMessage(),
 				order.getOrderedAt(),
 				order.getUpdatedAt(),
+				order.getStatus().availableNextStatuses(),
 				order.getItems().stream()
 						.map(OrderItemResponse::from)
 						.toList()
