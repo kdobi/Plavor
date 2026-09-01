@@ -40,3 +40,27 @@ The production compose file runs PostgreSQL, the Spring Boot backend, and a Cadd
    ```
 
 Do not use `docker compose down -v` after real production data exists. The `-v` option deletes the PostgreSQL volume.
+
+## Automatic Production Deployment
+
+Production deployment is handled by `.github/workflows/deploy-prod.yml`.
+
+The workflow runs after the `CI` workflow succeeds on `main`. It can also be started manually from the `main` branch with `workflow_dispatch`.
+
+The home server needs a GitHub Actions self-hosted runner with the `plavor-prod` label. The runner host must have Docker, the Docker Compose plugin, and access to `/home/kdobi/Plavor/.env`.
+
+The deployment workflow checks out the release source in the GitHub Actions runner workspace, reads the production environment values from `/home/kdobi/Plavor/.env`, then runs:
+
+```bash
+docker compose --project-name plavor --env-file /home/kdobi/Plavor/.env -f docker-compose.prod.yml config
+docker compose --project-name plavor --env-file /home/kdobi/Plavor/.env -f docker-compose.prod.yml build
+docker compose --project-name plavor --env-file /home/kdobi/Plavor/.env -f docker-compose.prod.yml up -d --remove-orphans
+```
+
+The fixed Compose project name keeps the Docker network and named volumes stable even though GitHub Actions runs from its own workspace.
+
+Recommended production flow:
+
+```text
+feat/* -> develop -> main -> CI success -> production deploy
+```
