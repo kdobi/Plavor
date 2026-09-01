@@ -11,7 +11,7 @@ export function formatImageUrl(imageUrl: string, width = 720) {
 
   try {
     const url = new URL(imageUrl)
-    if (!url.hostname.includes('images.unsplash.com')) {
+    if (url.hostname !== 'images.unsplash.com') {
       return imageUrl
     }
   } catch {
