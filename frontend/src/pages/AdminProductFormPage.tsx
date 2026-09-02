@@ -5,6 +5,7 @@ import {
   createAdminProduct,
   fetchAdminProduct,
   updateAdminProduct,
+  uploadAdminProductImage,
 } from '../api/admin'
 import { ApiError } from '../api/auth'
 import { fetchCategories } from '../api/catalog'
@@ -69,6 +70,9 @@ export function AdminProductFormPage() {
   const [message, setMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [uploadingImageKey, setUploadingImageKey] = useState<string | null>(
+    null,
+  )
 
   const isEditMode = Boolean(productId)
   const canLoad = Boolean(accessToken && user?.role === 'ADMIN')
@@ -154,6 +158,46 @@ export function AdminProductFormPage() {
       }),
     }))
     setFieldErrors((current) => clearFieldError(current, 'images'))
+  }
+
+  async function handleImageUpload(key: string, files: FileList | null) {
+    const file = files?.[0]
+    if (!file || !accessToken) {
+      return
+    }
+
+    setUploadingImageKey(key)
+    setMessage('')
+
+    try {
+      const uploadedImage = await uploadAdminProductImage(accessToken, file)
+
+      setForm((current) => {
+        const fallbackAltText =
+          current.name.trim()
+          || removeFileExtension(uploadedImage.originalFilename ?? file.name)
+
+        return {
+          ...current,
+          images: current.images.map((image) => {
+            if (image.key !== key) {
+              return image
+            }
+
+            return {
+              ...image,
+              imageUrl: uploadedImage.imageUrl,
+              altText: image.altText || fallbackAltText,
+            }
+          }),
+        }
+      })
+      setFieldErrors((current) => clearFieldError(current, 'images'))
+    } catch (error) {
+      setMessage(readApiMessage(error, '이미지를 업로드하지 못했습니다.'))
+    } finally {
+      setUploadingImageKey(null)
+    }
   }
 
   function handleThumbnailChange(key: string) {
@@ -406,13 +450,37 @@ export function AdminProductFormPage() {
                           <span>대표 이미지</span>
                         </label>
 
+                        <label className="admin-upload-field">
+                          <span>이미지 파일</span>
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            disabled={uploadingImageKey === image.key}
+                            onChange={(event) => {
+                              const input = event.currentTarget
+                              void handleImageUpload(
+                                image.key,
+                                input.files,
+                              ).finally(() => {
+                                input.value = ''
+                              })
+                            }}
+                          />
+                          <small className="admin-field-hint">
+                            {uploadingImageKey === image.key
+                              ? '이미지 업로드 중'
+                              : 'jpg, png, webp 파일을 업로드할 수 있습니다.'}
+                          </small>
+                        </label>
+
                         <label className="admin-field">
                           <span>이미지 URL</span>
                           <input
-                            type="url"
+                            type="text"
+                            inputMode="url"
                             value={image.imageUrl}
                             maxLength={500}
-                            placeholder="https://..."
+                            placeholder="https://... 또는 /uploads/products/..."
                             onChange={(event) =>
                               handleImageChange(
                                 image.key,
@@ -491,7 +559,10 @@ export function AdminProductFormPage() {
 
                 {message && <p className="admin-message">{message}</p>}
 
-                <button type="submit" disabled={isSaving}>
+                <button
+                  type="submit"
+                  disabled={isSaving || uploadingImageKey !== null}
+                >
                   {isSaving ? '저장 중' : isEditMode ? '상품 수정하기' : '상품 등록하기'}
                 </button>
               </aside>
@@ -592,6 +663,11 @@ function validateForm(form: AdminProductForm): ProductFormErrors {
 
 function normalizeNumber(value: string) {
   return value.replace(/\D/g, '')
+}
+
+function removeFileExtension(filename: string) {
+  const extensionIndex = filename.lastIndexOf('.')
+  return extensionIndex > 0 ? filename.slice(0, extensionIndex) : filename
 }
 
 function clearFieldError<K extends keyof AdminProductForm>(

@@ -36,6 +36,13 @@ export type AdminProductRequest = {
   images: AdminProductImageRequest[]
 }
 
+export type AdminImageUploadResponse = {
+  imageUrl: string
+  originalFilename: string | null
+  contentType: string
+  size: number
+}
+
 export type AdminProductStatusUpdateRequest = {
   status: ProductStatus
 }
@@ -58,6 +65,7 @@ export type AdminOrder = {
   deliveryMessage: string | null
   orderedAt: string
   updatedAt: string
+  availableNextStatuses: OrderStatus[]
   items: OrderItem[]
 }
 

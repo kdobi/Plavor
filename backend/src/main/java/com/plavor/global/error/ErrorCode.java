@@ -26,7 +26,13 @@ public enum ErrorCode {
 	ORDER_CART_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "ORDER_CART_ITEM_NOT_FOUND", "주문할 장바구니 상품을 찾을 수 없습니다."),
 	ORDER_PRODUCT_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "ORDER_PRODUCT_NOT_AVAILABLE", "주문할 수 없는 상품이 포함되어 있습니다."),
 	ORDER_QUANTITY_EXCEEDS_STOCK(HttpStatus.BAD_REQUEST, "ORDER_QUANTITY_EXCEEDS_STOCK", "주문 수량이 상품 재고보다 많습니다."),
-	ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "ORDER_NOT_FOUND", "주문을 찾을 수 없습니다.");
+	ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "ORDER_NOT_FOUND", "주문을 찾을 수 없습니다."),
+	ORDER_STATUS_TRANSITION_INVALID(HttpStatus.CONFLICT, "ORDER_STATUS_TRANSITION_INVALID", "변경할 수 없는 주문 상태입니다."),
+
+	UPLOAD_EMPTY_FILE(HttpStatus.BAD_REQUEST, "UPLOAD_EMPTY_FILE", "업로드할 파일을 선택해주세요."),
+	UPLOAD_INVALID_IMAGE_TYPE(HttpStatus.BAD_REQUEST, "UPLOAD_INVALID_IMAGE_TYPE", "지원하지 않는 이미지 형식입니다."),
+	UPLOAD_IMAGE_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, "UPLOAD_IMAGE_TOO_LARGE", "업로드 가능한 이미지 크기를 초과했습니다."),
+	UPLOAD_STORE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "UPLOAD_STORE_FAILED", "이미지를 저장하지 못했습니다.");
 
 	private final HttpStatus status;
 	private final String code;

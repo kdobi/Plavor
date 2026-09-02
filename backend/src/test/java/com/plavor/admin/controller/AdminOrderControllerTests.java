@@ -15,6 +15,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -84,6 +85,7 @@ class AdminOrderControllerTests {
 				.andExpect(jsonPath("$.memberEmail").value("admin-order-detail@example.com"))
 				.andExpect(jsonPath("$.receiverName").value("김동빈"))
 				.andExpect(jsonPath("$.totalAmount").value(58000))
+				.andExpect(jsonPath("$.availableNextStatuses", containsInAnyOrder("PAID", "PREPARING", "CANCELED")))
 				.andExpect(jsonPath("$.items", hasSize(1)))
 				.andExpect(jsonPath("$.items[0].productName").value("Minimal Cotton T-Shirt"))
 				.andExpect(jsonPath("$.items[0].quantity").value(2));
@@ -99,13 +101,32 @@ class AdminOrderControllerTests {
 						.contentType("application/json")
 						.content("""
 								{
-								  "status": "SHIPPED"
+								  "status": "PREPARING"
 								}
 								"""))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.id").value(order.get("id").asLong()))
-				.andExpect(jsonPath("$.status").value("SHIPPED"))
+				.andExpect(jsonPath("$.status").value("PREPARING"))
+				.andExpect(jsonPath("$.availableNextStatuses", containsInAnyOrder("SHIPPED", "CANCELED")))
 				.andExpect(jsonPath("$.updatedAt").exists());
+	}
+
+	@Test
+	void updateStatusRejectsUnavailableTransition() throws Exception {
+		String userToken = signupAndLogin("admin-order-invalid-status@example.com");
+		JsonNode order = createOrderFromProduct(userToken, 1, 1);
+
+		mockMvc.perform(patch("/api/admin/orders/{orderId}/status", order.get("id").asLong())
+						.header("Authorization", "Bearer " + createAdminAccessToken())
+						.contentType("application/json")
+						.content("""
+								{
+								  "status": "SHIPPED"
+								}
+								"""))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value("ORDER_STATUS_TRANSITION_INVALID"))
+				.andExpect(jsonPath("$.message").value("주문 접수 상태에서는 배송 중 상태로 변경할 수 없습니다."));
 	}
 
 	private Long addItem(String accessToken, long productId, int quantity) throws Exception {
