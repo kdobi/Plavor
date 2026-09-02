@@ -1,68 +1,56 @@
 # Plavor
 
-## Documentation
+Plavor는 온라인 쇼핑몰의 전체 흐름을 직접 구현해보기 위해 만든 커머스 프로젝트입니다. 상품 조회, 장바구니, 주문 생성, 관리자 상품 관리, 운영 배포, CI/CD까지 실제 서비스에 가까운 흐름을 작게나마 경험하는 것을 목표로 했습니다.
 
-- [ERD](docs/erd.md)
-- [GitHub Quality Gates](docs/github-quality-gates.md)
+## 프로젝트 임시 보류
 
-## Home Server Deployment
+이 프로젝트는 2026-09-02 기준으로 임시 보류합니다.
 
-The production compose file runs PostgreSQL, the Spring Boot backend, and a Caddy web image in the same Docker network. The web image builds the React frontend and serves the compiled files while proxying API traffic to the backend.
+처음에는 의류 쇼핑몰 방향으로 시작했지만, 추후 직접 판매와 운영까지 해볼 수 있는 품목이 생기면 그 방향에 맞춰 다시 이어서 개발할 계획입니다. 아직 실제로 판매할 상품군이 확정되지 않았기 때문에, 결제/배송/환불/재고 옵션처럼 운영 정책에 크게 영향을 받는 기능을 무리하게 먼저 만들기보다는 쇼핑몰의 기본 구조와 배포 기반을 완성한 시점에서 잠시 멈추기로 했습니다.
 
-Uploaded product images are stored in the `plavor-uploads` Docker volume and exposed through the backend under `/uploads/**`. The database stores only the image URL, not the binary image file.
+현재 코드베이스는 커머스 서비스의 기반으로 활용할 수 있는 상태입니다. 나중에 실제 판매 기회가 생기거나 상품 방향이 더 명확해지면, 현재 구현된 기능 위에서 운영에 필요한 기능을 이어서 개발하려고 합니다.
 
-1. Create an environment file on the server:
+### 구현된 기능
 
-   ```bash
-   cp docker/prod.env.example .env
-   ```
+- 이메일 회원가입, 로그인, 로그아웃, 리프레시 토큰 기반 로그인 유지
+- 카카오 소셜 로그인 흐름
+- 상품 목록, 상품 상세, 카테고리 필터링
+- 장바구니 상품 추가, 수량 변경, 삭제, 선택 상품 주문 생성
+- 사용자 주문 내역, 주문 상세, 주문 완료 화면
+- 관리자 상품 목록, 상품 등록, 상품 수정, 상품 상태 변경, 상품 이미지 업로드
+- 관리자 주문 목록, 주문 상세, 주문 상태 변경 제한
+- Flyway 기반 PostgreSQL 스키마 마이그레이션
+- 로컬/운영 Docker Compose 구성
+- Caddy 기반 운영 리버스 프록시 구성
+- 프론트엔드, API, 헬스 체크, 업로드 이미지 경로 배포 설정
+- GitHub Actions 기반 백엔드 테스트, 프론트엔드 린트/빌드, Docker Compose 검증, CodeQL 검사
+- `main` 브랜치 CI 성공 후 홈서버로 자동 배포되는 운영 배포 흐름
+- `develop`, `main` 브랜치 보호 규칙과 PR 기반 작업 흐름
 
-2. Edit `.env` and set real values for the database password, JWT secret, Kakao credentials, and production domain.
+### 아직 구현하지 않은 기능
 
-3. Stop any old standalone Caddy container that was created outside this compose file:
+- 토스페이먼츠, 포트원, 카카오페이 등 실제 결제 연동
+- 결제 내역 저장, 결제 승인, 결제 실패, 결제 취소, 환불 흐름
+- 배송사 선택과 송장번호 입력
+- 사용자 주문 상세에서 배송 정보 확인
+- 사용자 주문 취소 요청
+- 색상/사이즈 같은 상품 옵션과 옵션별 재고 관리
+- 관리자 카테고리 추가, 수정, 삭제, 숨김, 노출 순서 관리
+- 사용자 배송지 저장과 기본 배송지 선택
+- 쿠폰, 할인, 포인트, 프로모션 정책
+- 찜하기, 상품 리뷰, 별점, 리뷰 이미지
+- 매출, 최근 주문, 품절/재고 부족 상품을 확인하는 관리자 대시보드
+- DB 백업/복구 자동화와 업로드 이미지 백업 자동화
+- 사용하지 않는 업로드 이미지 정리
+- 운영 로그, 장애 알림, 관리자 작업 이력
 
-   ```bash
-   docker ps
-   docker stop caddy
-   docker rm caddy
-   ```
+### 추후 재개 순서
 
-4. Start the production stack:
+프로젝트를 다시 시작할 때는 다음 순서로 진행하기로 합니다.
 
-   ```bash
-   docker compose --env-file .env -f docker-compose.prod.yml up -d --build
-   ```
-
-5. Check the deployment:
-
-   ```bash
-   curl http://localhost:8080/actuator/health
-   curl https://$PLAVOR_DOMAIN/actuator/health
-   curl https://$PLAVOR_DOMAIN/api/products
-   ```
-
-Do not use `docker compose down -v` after real production data exists. The `-v` option deletes named volumes, including PostgreSQL data and uploaded product images.
-
-## Automatic Production Deployment
-
-Production deployment is handled by `.github/workflows/deploy-prod.yml`.
-
-The workflow runs after the `CI` workflow succeeds on `main`. It can also be started manually from the `main` branch with `workflow_dispatch`.
-
-The home server needs a GitHub Actions self-hosted runner with the `plavor-prod` label. The runner host must have Docker, the Docker Compose plugin, and access to `/home/kdobi/Plavor/.env`.
-
-The deployment workflow checks out the release source in the GitHub Actions runner workspace, reads the production environment values from `/home/kdobi/Plavor/.env`, then runs:
-
-```bash
-docker compose --project-name plavor --env-file /home/kdobi/Plavor/.env -f docker-compose.prod.yml config
-docker compose --project-name plavor --env-file /home/kdobi/Plavor/.env -f docker-compose.prod.yml build
-docker compose --project-name plavor --env-file /home/kdobi/Plavor/.env -f docker-compose.prod.yml up -d --remove-orphans
-```
-
-The fixed Compose project name keeps the Docker network and named volumes stable even though GitHub Actions runs from its own workspace.
-
-Recommended production flow:
-
-```text
-feat/* -> develop -> main -> CI success -> production deploy
-```
+1. 판매할 상품군과 운영 방식을 먼저 정합니다.
+2. 상품 데이터 구조와 화면 문구를 실제 상품군에 맞게 조정합니다.
+3. 배송사와 송장번호를 관리하는 배송 처리 기능을 추가합니다.
+4. 결제 테이블과 결제 상태 흐름을 설계한 뒤 결제사를 연동합니다.
+5. 결제가 안정화된 뒤 주문 취소와 환불 흐름을 추가합니다.
+6. 실제 운영에 필요할 때 상품 옵션, 쿠폰, 리뷰, 관리자 대시보드를 순차적으로 확장합니다.

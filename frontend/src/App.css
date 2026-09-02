@@ -9,7 +9,7 @@
   top: 0;
   z-index: 10;
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   min-height: 66px;
   padding: 0 40px;
@@ -27,14 +27,12 @@
   text-decoration: none;
 }
 
-.top-nav,
 .header-actions {
   display: flex;
   align-items: center;
   gap: 28px;
 }
 
-.top-nav a,
 .header-actions a {
   color: #242424;
   font-size: 14px;
@@ -42,7 +40,6 @@
   text-decoration: none;
 }
 
-.top-nav a:hover,
 .header-actions a:hover {
   color: #d93333;
 }
@@ -3000,19 +2997,11 @@
 @media (max-width: 1040px) {
   .site-header {
     grid-template-columns: 1fr auto;
-    row-gap: 12px;
     padding: 14px 24px;
   }
 
   .brand {
     grid-column: 1;
-  }
-
-  .top-nav {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    justify-self: start;
-    gap: 20px;
   }
 
   .header-actions {
@@ -3129,17 +3118,19 @@
 
 @media (max-width: 720px) {
   .site-header {
+    grid-template-columns: 1fr;
+    gap: 10px;
     min-height: 58px;
     padding: 12px 18px;
   }
 
-  .top-nav {
-    width: 100%;
-    overflow-x: auto;
-  }
-
   .header-actions {
-    display: none;
+    grid-column: 1;
+    justify-self: start;
+    width: 100%;
+    gap: 16px;
+    overflow-x: auto;
+    padding-bottom: 2px;
   }
 
   .intro-band {
